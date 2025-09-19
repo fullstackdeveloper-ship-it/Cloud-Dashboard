@@ -1,6 +1,7 @@
 // Global date range context for sharing date/time selection across components
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import intervalService from '../services/intervalService';
+import localStorageManager from '../utils/localStorage';
 
 const DateRangeContext = createContext();
 
@@ -13,7 +14,10 @@ export const useDateRange = () => {
 };
 
 export const DateRangeProvider = ({ children }) => {
-  const [selectedSite, setSelectedSite] = useState('dubai');
+  const [selectedSite, setSelectedSite] = useState(() => {
+    // Get from localStorage or default to 'dubai'
+    return localStorageManager.getSelectedSite();
+  });
   const [fromDateTime, setFromDateTime] = useState(() => {
     // Set to full day (12:00 AM today) - same as "Today" preset
     const now = new Date();
@@ -43,7 +47,10 @@ export const DateRangeProvider = ({ children }) => {
     const minutes = String(endOfDay.getMinutes()).padStart(2, '0');
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   });
-  const [selectedInterval, setSelectedInterval] = useState('1h');
+  const [selectedInterval, setSelectedInterval] = useState(() => {
+    // Get from localStorage or default to '1h'
+    return localStorageManager.getRefreshInterval();
+  });
   const [isUsingTodayDefault, setIsUsingTodayDefault] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -67,6 +74,20 @@ export const DateRangeProvider = ({ children }) => {
     };
     return siteControllerMap[selectedSite] || 'CTRL-1A64BCC039E8D677872A6A73E31ADFE1098432BE49B3AC4159FD21A909EF61EA';
   };
+
+  // Update selected interval and save to localStorage
+  const updateSelectedInterval = useCallback((newInterval) => {
+    console.log(`🔄 Updating refresh interval to: ${newInterval}`);
+    setSelectedInterval(newInterval);
+    localStorageManager.setRefreshInterval(newInterval);
+  }, []);
+
+  // Update selected site and save to localStorage
+  const updateSelectedSite = useCallback((newSite) => {
+    console.log(`🔄 Updating selected site to: ${newSite}`);
+    setSelectedSite(newSite);
+    localStorageManager.setSelectedSite(newSite);
+  }, []);
 
   // Global refresh function that triggers all KPI data to refresh
   const triggerGlobalRefresh = useCallback(() => {
@@ -101,12 +122,14 @@ export const DateRangeProvider = ({ children }) => {
   const value = {
     selectedSite,
     setSelectedSite,
+    updateSelectedSite, // New function for updating site with localStorage
     fromDateTime,
     setFromDateTime,
     endDateTime,
     setEndDateTime,
     selectedInterval,
     setSelectedInterval,
+    updateSelectedInterval, // New function for updating interval with localStorage
     isUsingTodayDefault,
     setIsUsingTodayDefault,
     getApiTimeRange,

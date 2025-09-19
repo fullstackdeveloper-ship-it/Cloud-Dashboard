@@ -1,100 +1,70 @@
-import React, { createContext, useContext, useCallback, useMemo } from 'react';
-import usePowerMixData from '../hooks/usePowerMixData';
-// Import other data hooks as they are created
-// import useKpiData from '../hooks/useKpiData';
-// import useAlarmData from '../hooks/useAlarmData';
-// import useEquipmentData from '../hooks/useEquipmentData';
+// Centralized data provider to reduce duplicate API calls
+import React, { createContext, useContext, useCallback } from 'react';
+import useKpiData from '../hooks/useKpiData';
+import { useDateRange } from './DateRangeContext';
 
 const DataContext = createContext();
 
-export const useDataContext = () => {
+export const useData = () => {
   const context = useContext(DataContext);
   if (!context) {
-    throw new Error('useDataContext must be used within a DataProvider');
+    throw new Error('useData must be used within a DataProvider');
   }
   return context;
 };
 
 export const DataProvider = ({ children }) => {
-  // Individual data hooks
-  const powerMixData = usePowerMixData();
-  // const kpiData = useKpiData();
-  // const alarmData = useAlarmData();
-  // const equipmentData = useEquipmentData();
+  const { getControllerId, getApiTimeRange, refreshTrigger } = useDateRange();
+  const controllerId = getControllerId();
+  const timeRange = getApiTimeRange();
 
-  // Unified refresh function
-  const refreshAllData = useCallback(async () => {
-    console.log('🔄 Refreshing all data...');
+  // Fetch only powerFlow and powerMix data
+  const powerFlowData = useKpiData(controllerId, 'powerFlow', {
+    autoRefresh: true,
+    enableIntervalRefresh: true,
+    globalRefreshTrigger: refreshTrigger
+  });
+
+  const powerMixData = useKpiData(controllerId, 'powerMix', {
+    startTime: timeRange.start,
+    stopTime: timeRange.stop,
+    autoRefresh: true,
+    enableIntervalRefresh: true,
+    globalRefreshTrigger: refreshTrigger
+  });
+
+  // Provide centralized data and refresh functions
+  const value = {
+    // Power Flow Data
+    powerFlow: {
+      data: powerFlowData.data,
+      isLoading: powerFlowData.isLoading,
+      error: powerFlowData.error,
+      isConnected: powerFlowData.isConnected,
+      isOffline: powerFlowData.isOffline,
+      consecutiveFailures: powerFlowData.consecutiveFailures,
+      staleDataCount: powerFlowData.staleDataCount,
+      lastUpdatedAt: powerFlowData.lastUpdatedAt,
+      refresh: powerFlowData.refreshData
+    },
     
-    const refreshPromises = [
-      powerMixData.refreshData(),
-      // kpiData.refreshData(),
-      // alarmData.refreshData(),
-      // equipmentData.refreshData(),
-    ].filter(Boolean); // Remove undefined refresh functions
-
-    try {
-      await Promise.all(refreshPromises);
-      console.log('✅ All data refreshed successfully');
-    } catch (error) {
-      console.error('❌ Error refreshing data:', error);
-      throw error;
-    }
-  }, [powerMixData.refreshData]);
-
-  // Individual refresh functions
-  const refreshPowerMix = useCallback(async () => {
-    console.log('🔄 Refreshing Power Mix data...');
-    await powerMixData.refreshData();
-  }, [powerMixData.refreshData]);
-
-  // const refreshKpi = useCallback(async () => {
-  //   console.log('🔄 Refreshing KPI data...');
-  //   await kpiData.refreshData();
-  // }, [kpiData.refreshData]);
-
-  // Unified loading state
-  const isAnyLoading = useMemo(() => {
-    return powerMixData.isLoading;
-    // || kpiData.isLoading 
-    // || alarmData.isLoading 
-    // || equipmentData.isLoading;
-  }, [powerMixData.isLoading]);
-
-  // Unified error state
-  const hasAnyError = useMemo(() => {
-    return powerMixData.error;
-    // || kpiData.error 
-    // || alarmData.error 
-    // || equipmentData.error;
-  }, [powerMixData.error]);
-
-  // Context value
-  const contextValue = useMemo(() => ({
-    // Data
-    powerMix: powerMixData,
-    // kpi: kpiData,
-    // alarms: alarmData,
-    // equipment: equipmentData,
+    // Power Mix Data
+    powerMix: {
+      data: powerMixData.data,
+      isLoading: powerMixData.isLoading,
+      error: powerMixData.error,
+      refresh: powerMixData.refreshData
+    },
     
-    // Unified functions
-    refreshAll: refreshAllData,
-    refreshPowerMix,
-    // refreshKpi,
-    
-    // Unified states
-    isLoading: isAnyLoading,
-    hasError: hasAnyError,
-  }), [
-    powerMixData,
-    refreshAllData,
-    refreshPowerMix,
-    isAnyLoading,
-    hasAnyError,
-  ]);
+    // Global refresh function
+    refreshAll: useCallback(() => {
+      powerFlowData.refreshData();
+      powerMixData.refreshData();
+    }, [powerFlowData, powerMixData])
+  };
 
   return (
-    <DataContext.Provider value={contextValue}>
+    <DataContext.Provider value={value}>
       {children}
     </DataContext.Provider>
   );

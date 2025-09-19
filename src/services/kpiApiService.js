@@ -46,26 +46,6 @@ class KpiApiService {
     }
   }
 
-  /**
-   * Fetch calculated KPI metrics from latest power data
-   * @param {string} controllerId - The controller ID
-   * @returns {Promise<Object>} KPI data with totalLoad, totalGeneration, gridPower, efficiency
-   */
-  async fetchKpiMetrics(controllerId) {
-    try {
-      console.log('🔄 Fetching KPI data...', { controllerId });
-      
-      const response = await api.get('/api/v1/kpi/current', {
-        controllerId
-      });
-      
-      console.log('✅ KPI data received:', response);
-      return response.data;
-    } catch (error) {
-      console.error('❌ Failed to fetch KPI data:', error);
-      throw new Error(`Failed to fetch KPI data: ${error.message}`);
-    }
-  }
 
   /**
    * Get default/fallback data for when API calls fail
@@ -82,16 +62,6 @@ class KpiApiService {
     };
   }
 
-  getDefaultKpiData() {
-    return {
-      totalLoad: 0,
-      totalGeneration: 0,
-      gridPower: 0,
-      efficiency: 0,
-      updatedAt: new Date().toISOString(),
-      status: 'offline'
-    };
-  }
 
   getDefaultPowerMixData() {
     return {
@@ -104,4 +74,5 @@ class KpiApiService {
   }
 }
 
-export default new KpiApiService();
+const kpiApiService = new KpiApiService();
+export default kpiApiService;

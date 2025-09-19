@@ -9,12 +9,14 @@ const Header = () => {
   const {
     selectedSite,
     setSelectedSite,
+    updateSelectedSite, // Use the new function that saves to localStorage
     fromDateTime,
     setFromDateTime,
     endDateTime,
     setEndDateTime,
     selectedInterval,
     setSelectedInterval,
+    updateSelectedInterval, // Use the new function that saves to localStorage
     isUsingTodayDefault,
     setIsUsingTodayDefault,
     triggerGlobalRefresh
@@ -159,7 +161,7 @@ const Header = () => {
                     <button
                       key={site.id}
                       onClick={() => {
-                        setSelectedSite(site.id);
+                        updateSelectedSite(site.id);
                         setShowSiteDropdown(false);
                       }}
                       className={`w-full flex items-center justify-between p-3 rounded-lg transition-all duration-200 ${
@@ -396,7 +398,7 @@ const Header = () => {
                     <button
                       key={interval.id}
                       onClick={() => {
-                        setSelectedInterval(interval.id);
+                        updateSelectedInterval(interval.id);
                         setShowIntervalDropdown(false);
                       }}
                       className={`w-full flex items-center justify-between p-3 rounded-lg transition-all duration-200 ${

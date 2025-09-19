@@ -1,6 +1,7 @@
 // Unified hook for all KPI data fetching
 import { useState, useEffect, useCallback, useRef } from 'react';
 import kpiApiService from '../services/kpiApiService.js';
+import apiCallManager from '../services/apiCallManager.js';
 import { useDateRange } from '../contexts/DateRangeContext.js';
 
 const useKpiData = (controllerId, dataType = 'powerFlow', options = {}) => {
@@ -34,7 +35,7 @@ const useKpiData = (controllerId, dataType = 'powerFlow', options = {}) => {
     }
 
     // Create a unique key for this fetch request
-    const fetchKey = `${controllerId}-${dataType}-${startTime}-${stopTime}-${globalRefreshTrigger || 0}`;
+    const callKey = apiCallManager.generateCallKey(controllerId, dataType, startTime, stopTime, globalRefreshTrigger);
     
     // Prevent duplicate calls unless it's a forced refresh
     if (!forceRefresh && isFetchingRef.current) {
@@ -43,40 +44,36 @@ const useKpiData = (controllerId, dataType = 'powerFlow', options = {}) => {
     }
 
     // Check if we're fetching the same data (only for non-forced refreshes)
-    if (!forceRefresh && lastFetchParamsRef.current === fetchKey) {
+    if (!forceRefresh && lastFetchParamsRef.current === callKey) {
       console.log(`⏸️ Skipping duplicate ${dataType} fetch with same parameters`);
       return;
     }
 
-    console.log(`🔄 Starting ${dataType} fetch with key: ${fetchKey}`);
+    console.log(`🔄 Starting ${dataType} fetch with key: ${callKey}`);
 
     isFetchingRef.current = true;
-    lastFetchParamsRef.current = fetchKey;
+    lastFetchParamsRef.current = callKey;
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log(`🔄 Fetching ${dataType} data...`, { controllerId, options });
-      
-      let result;
-      
-      switch (dataType) {
-        case 'powerFlow':
-          result = await kpiApiService.fetchPowerFlowData(controllerId);
-          break;
-        case 'powerMix':
-          if (!startTime || !stopTime) {
-            throw new Error('startTime and stopTime are required for powerMix data');
-          }
-          // Don't send window parameter for power mix
-          result = await kpiApiService.fetchPowerMixData(controllerId, startTime, stopTime);
-          break;
-        case 'kpi':
-          result = await kpiApiService.fetchKpiMetrics(controllerId);
-          break;
-        default:
-          throw new Error(`Unknown data type: ${dataType}`);
-      }
+      // Define the API function to call
+      const apiFunction = async () => {
+        switch (dataType) {
+          case 'powerFlow':
+            return await kpiApiService.fetchPowerFlowData(controllerId);
+          case 'powerMix':
+            if (!startTime || !stopTime) {
+              throw new Error('startTime and stopTime are required for powerMix data');
+            }
+            return await kpiApiService.fetchPowerMixData(controllerId, startTime, stopTime);
+          default:
+            throw new Error(`Unknown data type: ${dataType}. Only 'powerFlow' and 'powerMix' are supported.`);
+        }
+      };
+
+      // Use API call manager to prevent duplicate calls
+      const result = await apiCallManager.getOrCreateCall(callKey, apiFunction);
       
       setData(result);
       setIsConnected(result.status === 'live' || result.status === 'online');
@@ -132,9 +129,6 @@ const useKpiData = (controllerId, dataType = 'powerFlow', options = {}) => {
         case 'powerMix':
           setData(kpiApiService.getDefaultPowerMixData());
           break;
-        case 'kpi':
-          setData(kpiApiService.getDefaultKpiData());
-          break;
         default:
           setData(null);
           break;
@@ -145,7 +139,7 @@ const useKpiData = (controllerId, dataType = 'powerFlow', options = {}) => {
       setIsLoading(false);
       isFetchingRef.current = false;
     }
-  }, [controllerId, dataType, startTime, stopTime, consecutiveFailures, globalRefreshTrigger, options, lastUpdatedAt, staleDataCount]);
+  }, [controllerId, dataType, startTime, stopTime, globalRefreshTrigger, consecutiveFailures, lastUpdatedAt, staleDataCount]);
 
   // Load data on mount and when dependencies change (with debounce)
   useEffect(() => {
@@ -164,7 +158,7 @@ const useKpiData = (controllerId, dataType = 'powerFlow', options = {}) => {
         clearTimeout(debounceTimeoutRef.current);
       }
     };
-  }, [fetchData]);
+  }, [controllerId, dataType, startTime, stopTime, globalRefreshTrigger, fetchData]);
 
   // Listen to global refresh trigger (separate from dependency changes)
   useEffect(() => {
@@ -175,7 +169,7 @@ const useKpiData = (controllerId, dataType = 'powerFlow', options = {}) => {
       lastFetchParamsRef.current = null;
       fetchData(true); // Force refresh on global trigger
     }
-  }, [globalRefreshTrigger, dataType, fetchData]); // Remove fetchData from dependencies
+  }, [globalRefreshTrigger, dataType, fetchData]);
 
   // Interval-based refresh management using the global interval service
   useEffect(() => {
@@ -183,12 +177,16 @@ const useKpiData = (controllerId, dataType = 'powerFlow', options = {}) => {
       return;
     }
 
-    const intervalKey = `kpi-${controllerId}-${dataType}`;
+    // Use a more specific interval key to avoid conflicts
+    const intervalKey = `kpi-${controllerId}-${dataType}-${Date.now()}`;
     
     // Start interval refresh using the global interval service
     startIntervalRefresh(intervalKey, () => {
       console.log(`🔄 Interval refresh triggered for ${dataType} (${selectedInterval})`);
-      fetchData(true);
+      // Only fetch if not already fetching
+      if (!isFetchingRef.current) {
+        fetchData(true);
+      }
     });
 
     // Cleanup on unmount or dependency change

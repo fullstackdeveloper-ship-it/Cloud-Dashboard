@@ -10,34 +10,48 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import BaseChart from './common/BaseChart';
-import useKpiData from '../hooks/useKpiData.js';
-import { useDateRange } from '../contexts/DateRangeContext.js';
+import { useData } from '../contexts/DataProvider.js';
 
 const PowerMixChart = ({ className }) => {
-  // Get controller ID, time range, and global refresh trigger from context
-  const { getControllerId, getApiTimeRange, refreshTrigger } = useDateRange();
-  const controllerId = getControllerId();
-  const timeRange = getApiTimeRange();
+  // Use centralized data provider to avoid duplicate API calls
+  const { powerMix } = useData();
+  const { data: powerMixData, isLoading, error } = powerMix;
   
-  // Use unified KPI data hook for power mix data
-  const { data: powerMixData, isLoading, error } = useKpiData(
-    controllerId,
-    'powerMix',
-    {
-      startTime: timeRange.start,
-      stopTime: timeRange.stop,
-      autoRefresh: true, // Enable auto-refresh for power mix
-      enableIntervalRefresh: true, // Enable interval-based refresh
-      globalRefreshTrigger: refreshTrigger
+  const rawData = powerMixData?.data || [];
+  
+  // Process and validate the data
+  const chartData = rawData.map((item, index) => {
+    // Ensure all values are numbers and handle any data issues
+    const processedItem = {
+      time: item.time || new Date().toISOString(),
+      W_PV: typeof item.W_PV === 'number' ? item.W_PV : 0,
+      W_Grid: typeof item.W_Grid === 'number' ? item.W_Grid : 0,
+      W_Gen: typeof item.W_Gen === 'number' ? item.W_Gen : 0,
+      W_Load: typeof item.W_Load === 'number' ? item.W_Load : 0,
+    };
+    
+    // Only log first item for debugging
+    if (index === 0) {
+      console.log('Power Mix - First data point:', processedItem);
     }
+    
+    return processedItem;
+  });
+  
+  // Check if all values are zero or if we have no data
+  const hasValidData = chartData.length > 0 && chartData.some(item => 
+    item.W_PV > 0 || item.W_Grid > 0 || item.W_Gen > 0 || item.W_Load > 0
   );
   
-  const chartData = powerMixData?.data || [];
+  // Only log warnings, not all data
+  if (!hasValidData && chartData.length > 0) {
+    console.warn('Power Mix Chart: All values are zero or invalid');
+  }
 
   return (
     <BaseChart
       className={className}
-      title="Power Mix (W_PV, W_Grid, W_Gen, W_Load)"
+      title="Power Mix"
       subtitle=""
       data={chartData}
       isLoading={isLoading}
@@ -46,7 +60,7 @@ const PowerMixChart = ({ className }) => {
       loadingMessage="Loading power mix data..."
       loadingSubMessage="Fetching all data points from database"
       emptyMessage="No power mix data available"
-      emptySubMessage="No data found in the database"
+      emptySubMessage={hasValidData ? "Data loaded but all values are zero" : "No data found in the database"}
     >
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
@@ -58,7 +72,6 @@ const PowerMixChart = ({ className }) => {
             bottom: 0,
           }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />
           <XAxis 
             dataKey="time" 
             stroke="#6b7280"
@@ -80,7 +93,13 @@ const PowerMixChart = ({ className }) => {
             fontSize={12}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(value) => `${value}kW`}
+            domain={['dataMin', 'dataMax']}
+            tickFormatter={(value) => {
+              if (value === 0) return '0 kW';
+              if (value < 1000) return `${Math.round(value)} W`;
+              return `${Math.round(value / 1000)} kW`;
+            }}
+            scale="linear"
           />
           <Tooltip 
             contentStyle={{
@@ -91,64 +110,81 @@ const PowerMixChart = ({ className }) => {
               fontSize: '12px',
               fontWeight: 'bold'
             }}
-            formatter={(value, name) => [`${value} kW`, name]}
-            labelFormatter={(label) => `Time: ${label}`}
+            formatter={(value, name) => {
+              if (value === 0) return ['0 W', name];
+              if (value < 1000) return [`${Math.round(value)} W`, name];
+              return [`${Math.round(value / 1000)} kW`, name];
+            }}
+            labelFormatter={(label) => {
+              if (!label) return 'Time: N/A';
+              const date = new Date(label);
+              return `Time: ${date.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false 
+              })}`;
+            }}
           />
           <Legend 
             wrapperStyle={{ fontSize: '12px' }}
             iconType="circle"
           />
           
-          {/* W_PV Area */}
+          {/* W_PV Area - Solar */}
           <Area
             type="monotone"
             dataKey="W_PV"
-            stackId="1"
-            stroke="#3b82f6"
-            fill="#3b82f6"
-            fillOpacity={0.3}
+            stackId="power"
+            stroke="#FF8C00"
+            fill="#FFA500"
+            fillOpacity={0.7}
             strokeWidth={2}
-            strokeOpacity={0.8}
-            name="W_PV"
+            strokeOpacity={0.9}
+            name="Solar Active Power"
+            connectNulls={false}
           />
           
-          {/* W_Grid Area */}
+          {/* W_Grid Area - Grid */}
           <Area
             type="monotone"
             dataKey="W_Grid"
-            stackId="2"
-            stroke="#f97316"
-            fill="#f97316"
-            fillOpacity={0.3}
+            stackId="power"
+            stroke="#4169E1"
+            fill="#87CEEB"
+            fillOpacity={0.7}
             strokeWidth={2}
-            strokeOpacity={0.8}
-            name="W_Grid"
+            strokeOpacity={0.9}
+            name="Grid Active Power"
+            connectNulls={false}
           />
           
-          {/* W_Gen Area */}
+          {/* W_Gen Area - Generator */}
           <Area
             type="monotone"
             dataKey="W_Gen"
-            stackId="3"
-            stroke="#22c55e"
-            fill="#22c55e"
-            fillOpacity={0.3}
+            stackId="power"
+            stroke="#32CD32"
+            fill="#90EE90"
+            fillOpacity={0.7}
             strokeWidth={2}
-            strokeOpacity={0.8}
-            name="W_Gen"
+            strokeOpacity={0.9}
+            name="Generator Active Power"
+            connectNulls={false}
           />
           
-          {/* W_Load Area */}
+          {/* W_Load Area - Load */}
           <Area
             type="monotone"
             dataKey="W_Load"
-            stackId="4"
-            stroke="#ef4444"
-            fill="#ef4444"
-            fillOpacity={0.3}
+            stackId="power"
+            stroke="#DC143C"
+            fill="#FFB6C1"
+            fillOpacity={0.7}
             strokeWidth={2}
-            strokeOpacity={0.8}
-            name="W_Load"
+            strokeOpacity={0.9}
+            name="Load Active Power"
+            connectNulls={false}
           />
         </AreaChart>
       </ResponsiveContainer>

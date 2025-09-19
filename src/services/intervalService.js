@@ -6,6 +6,7 @@ class IntervalService {
   constructor() {
     this.intervals = new Map();
     this.callbacks = new Set();
+    this.lastExecution = new Map(); // Track last execution time for debouncing
   }
 
   /**
@@ -38,7 +39,23 @@ class IntervalService {
     this.stop(key);
 
     const ms = this.getIntervalMs(interval);
-    const intervalId = setInterval(callback, ms);
+    
+    // Create debounced callback
+    const debouncedCallback = () => {
+      const now = Date.now();
+      const lastExec = this.lastExecution.get(key) || 0;
+      const timeSinceLastExec = now - lastExec;
+      
+      // Only execute if enough time has passed (debounce by 1 second minimum)
+      if (timeSinceLastExec >= 1000) {
+        this.lastExecution.set(key, now);
+        callback();
+      } else {
+        console.log(`⏸️ Debouncing interval callback for ${key} (${timeSinceLastExec}ms since last execution)`);
+      }
+    };
+    
+    const intervalId = setInterval(debouncedCallback, ms);
     
     this.intervals.set(key, intervalId);
     this.callbacks.add(callback);

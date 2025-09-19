@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
-import useKpiData from '../hooks/useKpiData.js';
-import { useDateRange } from '../contexts/DateRangeContext.js';
+import { useData } from '../contexts/DataProvider.js';
 
 /** ---------- Layout ---------- */
 const POS = {
@@ -220,20 +219,9 @@ function FloorText({ x, y, text, size = 16, skewX = -22, scaleY = 0.68, rotate =
 
 /** ---------- Component ---------- */
 export default function FlowKPI() {
-  // Get controller ID and global refresh trigger from date range context
-  const { getControllerId, refreshTrigger } = useDateRange();
-  const controllerId = getControllerId();
-  
-  // Use unified KPI data hook for power flow data
-  const { data: powerFlowData, isLoading, error, isConnected, consecutiveFailures, isOffline, staleDataCount } = useKpiData(
-    controllerId, 
-    'powerFlow', 
-    { 
-      autoRefresh: true, // Enable auto-refresh for Power Flow
-      enableIntervalRefresh: true, // Enable interval-based refresh
-      globalRefreshTrigger: refreshTrigger
-    }
-  );
+  // Use centralized data provider to avoid duplicate API calls
+  const { powerFlow } = useData();
+  const { data: powerFlowData, isLoading, error, isConnected, isOffline, consecutiveFailures, staleDataCount, lastUpdatedAt } = powerFlow;
   
   // Fallback data in case of error or loading
   const defaultData = {
@@ -382,9 +370,9 @@ export default function FlowKPI() {
                 'Connecting...'
               }
             </span>
-            {currentData.updatedAt && (
+            {lastUpdatedAt && (
               <span className="text-xs text-gray-400 font-mono">
-                {new Date(currentData.updatedAt).toLocaleTimeString()}
+                {new Date(lastUpdatedAt).toLocaleTimeString()}
               </span>
             )}
           </div>

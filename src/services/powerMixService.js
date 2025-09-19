@@ -18,12 +18,13 @@ class PowerMixService {
         controllerId,
         start,
         stop
-        // Removed window parameter to get all data points without aggregation
       });
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to fetch power mix data');
       }
+
+      console.log('Raw Power Mix data received:', response.data);
 
       // Transform the data to match chart format
       const transformedData = this.transformDataForChart(response.data.data);

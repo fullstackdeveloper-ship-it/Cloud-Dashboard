@@ -20,7 +20,7 @@ const MetricCard = ({ title, value }) => {
 const RightMetricsPanel = ({ className }) => {
   // Mock data for the metrics
   const energyMetrics = [
-    { title: 'PV Generation', value: '45.2 kW' },
+    { title: 'Solar Generation', value: '45.2 kW' },
     { title: 'Genset Production', value: '12.8 kW' },
     { title: 'Grid Import/Export', value: '8.5 kW' },
     { title: 'Load Consumption', value: '66.5 kW' }
