@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../hooks/useData.js';
-import { useDataIntegration } from '../hooks/useDataIntegration.js';
 import { calcEnergyWithDuration } from '../utils/energyCalculator.js';
 
 const MetricCard = ({ title, value, isLoading = false, error = false }) => {
@@ -27,9 +26,6 @@ const MetricCard = ({ title, value, isLoading = false, error = false }) => {
 };
 
 const RightMetricsPanel = ({ className }) => {
-  // Initialize data integration to populate Redux store
-  useDataIntegration();
-  
   // Get power mix data from Redux store
   const { powerMix } = useData();
   const { data: powerMixData, isLoading, error } = powerMix;

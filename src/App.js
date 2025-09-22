@@ -12,28 +12,31 @@ import Grid from './pages/Grid';
 import Team from './pages/Team';
 import Notifications from './pages/Notifications';
 import Reports from './pages/Reports';
+import { useDataIntegration } from './hooks/useDataIntegration';
 import './App.css';
 
-function App() {
-
+// Data integration wrapper component
+function AppWithData() {
+  // Initialize data integration once at the app level
+  useDataIntegration();
+  
   return (
-    <Provider store={store}>
-      <Router>
-        <div className="App">
-          <MainLayout>
-            <Routes>
-              <Route path="/" element={<Navigate to="/overview" replace />} />
-              <Route path="/overview" element={<Overview />} />
-              <Route path="/solar" element={<Solar />} />
-              <Route path="/genset" element={<Genset />} />
-              <Route path="/grid" element={<Grid />} />
-              <Route path="/team" element={<Team />} />
-              <Route path="/notifications" element={<Notifications />} />
-              <Route path="/reports" element={<Reports />} />
-              
-              <Route path="*" element={<Navigate to="/overview" replace />} />
-            </Routes>
-          </MainLayout>
+    <Router>
+      <div className="App">
+        <MainLayout>
+          <Routes>
+            <Route path="/" element={<Navigate to="/overview" replace />} />
+            <Route path="/overview" element={<Overview />} />
+            <Route path="/solar" element={<Solar />} />
+            <Route path="/genset" element={<Genset />} />
+            <Route path="/grid" element={<Grid />} />
+            <Route path="/team" element={<Team />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/reports" element={<Reports />} />
+            
+            <Route path="*" element={<Navigate to="/overview" replace />} />
+          </Routes>
+        </MainLayout>
         
         {/* Global Toast Container */}
         <ToastContainer
@@ -53,6 +56,13 @@ function App() {
         />
         </div>
       </Router>
+  );
+}
+
+function App() {
+  return (
+    <Provider store={store}>
+      <AppWithData />
     </Provider>
   );
 }

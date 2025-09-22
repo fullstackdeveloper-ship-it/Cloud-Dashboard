@@ -10,13 +10,10 @@ import {
 } from 'recharts';
 import BaseChart from './common/BaseChart';
 import { useData } from '../hooks/useData';
-import { useDataIntegration } from '../hooks/useDataIntegration';
 import { useDateRange } from '../hooks/redux';
 import { calcEnergyWithDuration } from '../utils/energyCalculator';
 
 const PowerMixChart = ({ className }) => {
-  // Initialize data integration to populate Redux store
-  useDataIntegration();
   
   // Use centralized data provider to avoid duplicate API calls
   const { powerMix } = useData();

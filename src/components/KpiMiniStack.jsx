@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../hooks/useData.js';
-import { useDataIntegration } from '../hooks/useDataIntegration.js';
 
 const KpiMiniCard = ({ title, value, unit, icon }) => {
   return (
@@ -20,9 +19,6 @@ const KpiMiniCard = ({ title, value, unit, icon }) => {
 };
 
 const KpiMiniStack = () => {
-  // Initialize data integration to populate Redux store
-  useDataIntegration();
-  
   // Get power mix data from Redux store
   const { powerMix } = useData();
   const { data: powerMixData, isLoading, error } = powerMix;
