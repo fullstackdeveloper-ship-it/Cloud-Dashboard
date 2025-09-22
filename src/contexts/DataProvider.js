@@ -18,12 +18,18 @@ export const DataProvider = ({ children }) => {
   const controllerId = getControllerId();
   const timeRange = getApiTimeRange();
 
-  // Fetch only powerFlow and powerMix data
-  const powerFlowData = useKpiData(controllerId, 'powerFlow', {
-    autoRefresh: true,
-    enableIntervalRefresh: true,
-    globalRefreshTrigger: refreshTrigger
-  });
+  // Fetch only powerMix data (PowerFlow disabled to prevent unnecessary API calls)
+  const powerFlowData = {
+    data: null,
+    isLoading: false,
+    error: null,
+    isConnected: false,
+    isOffline: false,
+    consecutiveFailures: 0,
+    staleDataCount: 0,
+    lastUpdatedAt: null,
+    refresh: () => console.log('PowerFlow refresh disabled')
+  };
 
   const powerMixData = useKpiData(controllerId, 'powerMix', {
     startTime: timeRange.start,

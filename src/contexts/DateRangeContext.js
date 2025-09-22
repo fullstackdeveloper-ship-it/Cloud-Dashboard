@@ -53,12 +53,43 @@ export const DateRangeProvider = ({ children }) => {
   });
   const [isUsingTodayDefault, setIsUsingTodayDefault] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  // Applied date/time state - only these values trigger API calls
+  const [appliedFromDateTime, setAppliedFromDateTime] = useState(() => {
+    // Set to full day (12:00 AM today) - same as "Today" preset
+    const now = new Date();
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0); // 12:00 AM today
+    
+    // Format for datetime-local input
+    const year = startOfDay.getFullYear();
+    const month = String(startOfDay.getMonth() + 1).padStart(2, '0');
+    const day = String(startOfDay.getDate()).padStart(2, '0');
+    const hours = String(startOfDay.getHours()).padStart(2, '0');
+    const minutes = String(startOfDay.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  });
+  const [appliedEndDateTime, setAppliedEndDateTime] = useState(() => {
+    // Set to next day at 12:00 AM - same as "Today" preset
+    const now = new Date();
+    const endOfDay = new Date(now);
+    endOfDay.setDate(endOfDay.getDate() + 1);
+    endOfDay.setHours(0, 0, 0, 0); // 12:00 AM tomorrow
+    
+    // Format for datetime-local input
+    const year = endOfDay.getFullYear();
+    const month = String(endOfDay.getMonth() + 1).padStart(2, '0');
+    const day = String(endOfDay.getDate()).padStart(2, '0');
+    const hours = String(endOfDay.getHours()).padStart(2, '0');
+    const minutes = String(endOfDay.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  });
 
-  // Convert datetime to ISO format for API calls
+  // Convert datetime to ISO format for API calls (uses applied values)
   const getApiTimeRange = () => {
     return {
-      start: new Date(fromDateTime).toISOString(),
-      stop: new Date(endDateTime).toISOString(),
+      start: new Date(appliedFromDateTime).toISOString(),
+      stop: new Date(appliedEndDateTime).toISOString(),
       window: selectedInterval
     };
   };
@@ -88,6 +119,15 @@ export const DateRangeProvider = ({ children }) => {
     setSelectedSite(newSite);
     localStorageManager.setSelectedSite(newSite);
   }, []);
+
+  // Apply date/time changes and trigger API calls
+  const applyDateTimeChanges = useCallback(() => {
+    console.log('🔄 Applying date/time changes and triggering API calls...');
+    setAppliedFromDateTime(fromDateTime);
+    setAppliedEndDateTime(endDateTime);
+    // Trigger refresh to make API calls with new applied values
+    setRefreshTrigger(prev => prev + 1);
+  }, [fromDateTime, endDateTime]);
 
   // Global refresh function that triggers all KPI data to refresh
   const triggerGlobalRefresh = useCallback(() => {
@@ -127,6 +167,8 @@ export const DateRangeProvider = ({ children }) => {
     setFromDateTime,
     endDateTime,
     setEndDateTime,
+    appliedFromDateTime, // Applied values for API calls
+    appliedEndDateTime, // Applied values for API calls
     selectedInterval,
     setSelectedInterval,
     updateSelectedInterval, // New function for updating interval with localStorage
@@ -136,6 +178,7 @@ export const DateRangeProvider = ({ children }) => {
     getControllerId,
     refreshTrigger,
     triggerGlobalRefresh,
+    applyDateTimeChanges, // New function to apply changes and trigger API calls
     // Interval management
     startIntervalRefresh,
     stopIntervalRefresh,

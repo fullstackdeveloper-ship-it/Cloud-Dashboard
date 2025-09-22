@@ -14,12 +14,15 @@ const Header = () => {
     setFromDateTime,
     endDateTime,
     setEndDateTime,
+    appliedFromDateTime, // Applied values for display
+    appliedEndDateTime, // Applied values for display
     selectedInterval,
     setSelectedInterval,
     updateSelectedInterval, // Use the new function that saves to localStorage
     isUsingTodayDefault,
     setIsUsingTodayDefault,
-    triggerGlobalRefresh
+    triggerGlobalRefresh,
+    applyDateTimeChanges // New function to apply changes
   } = useDateRange();
 
   // Local loading state for refresh button
@@ -83,10 +86,9 @@ const Header = () => {
         year: 'numeric'
       }),
       time: date.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
+        hour: 'numeric', 
         minute: '2-digit',
-        second: '2-digit',
-        hour12: false
+        hour12: true
       })
     };
   };
@@ -210,10 +212,10 @@ const Header = () => {
               </div>
               <div className="text-left">
                 <div className="text-sm font-bold bg-gradient-to-r from-[#0097b2] to-[#198c1a] bg-clip-text text-transparent">
-                  {isUsingTodayDefault ? 'Today' : `${formatDateTime(fromDateTime).date} - ${formatDateTime(endDateTime).date}`}
+                  {isUsingTodayDefault ? 'Today' : `${formatDateTime(appliedFromDateTime).date} - ${formatDateTime(appliedEndDateTime).date}`}
                 </div>
                 <div className="text-xs text-gray-600">
-                  {isUsingTodayDefault ? '00:00 → 00:00 (24h)' : `${formatDateTime(fromDateTime).time} → ${formatDateTime(endDateTime).time}`}
+                  {isUsingTodayDefault ? '12:00 AM → 12:00 AM (24h)' : `${formatDateTime(appliedFromDateTime).time} → ${formatDateTime(appliedEndDateTime).time}`}
                 </div>
               </div>
               <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${showDatePicker ? 'rotate-180' : ''}`} />
@@ -355,7 +357,10 @@ const Header = () => {
                   {/* Apply Button */}
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <button
-                      onClick={() => setShowDatePicker(false)}
+                      onClick={() => {
+                        applyDateTimeChanges();
+                        setShowDatePicker(false);
+                      }}
                       className="w-full px-4 py-2 bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white rounded-lg hover:shadow-lg transition-all duration-300 font-medium"
                     >
                       Apply DateTime Range

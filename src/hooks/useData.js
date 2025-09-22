@@ -1,4 +1,4 @@
-import { useDataContext } from '../contexts/DataProvider';
+import { useData as useDataContext } from '../contexts/DataProvider';
 
 /**
  * Custom hook for accessing data context
