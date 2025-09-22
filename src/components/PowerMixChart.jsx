@@ -10,10 +10,14 @@ import {
 } from 'recharts';
 import BaseChart from './common/BaseChart';
 import { useData } from '../hooks/useData';
-import { useDateRange } from '../contexts/DateRangeContext';
+import { useDataIntegration } from '../hooks/useDataIntegration';
+import { useDateRange } from '../hooks/redux';
 import { calcEnergyWithDuration } from '../utils/energyCalculator';
 
 const PowerMixChart = ({ className }) => {
+  // Initialize data integration to populate Redux store
+  useDataIntegration();
+  
   // Use centralized data provider to avoid duplicate API calls
   const { powerMix } = useData();
   const { data: powerMixData, error } = powerMix;
@@ -78,13 +82,6 @@ const PowerMixChart = ({ className }) => {
 
     // If no raw data, return the backbone with zeros
     if (!rawData.length) {
-      console.log('📊 Chart data with time series backbone (no data):', {
-        totalTimePoints: timeSeries.length,
-        actualDataPoints: 0,
-        intervalMinutes: actualInterval / (60 * 1000),
-        timeRange: `${startTime.toLocaleString()} - ${endTime.toLocaleString()}`,
-        hasNonZeroValues: false
-      });
       return timeSeries;
     }
 
@@ -122,15 +119,6 @@ const PowerMixChart = ({ className }) => {
       return timePoint;
     });
 
-    console.log('📊 Chart data with time series backbone:', {
-      totalTimePoints: mergedData.length,
-      actualDataPoints: mergedData.filter(p => p.hasData).length,
-      intervalMinutes: actualInterval / (60 * 1000),
-      timeRange: `${startTime.toLocaleString()} - ${endTime.toLocaleString()}`,
-      hasNonZeroValues: mergedData.some(item => 
-        item.W_PV > 0 || item.W_Grid > 0 || item.W_Gen > 0 || item.W_Load > 0
-      )
-    });
 
     return mergedData;
   }, [powerMixData, fromDateTime, endDateTime]);

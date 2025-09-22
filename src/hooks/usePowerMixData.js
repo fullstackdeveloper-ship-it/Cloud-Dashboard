@@ -1,7 +1,7 @@
 // Custom hook for managing Power Mix data
 import { useState, useEffect, useCallback } from 'react';
 import powerMixService from '../services/powerMixService';
-import { useDateRange } from '../contexts/DateRangeContext';
+import { useDateRange } from './redux';
 
 const usePowerMixData = (customControllerId = null, customTimeRange = null) => {
   const [data, setData] = useState([]);

@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
-import { useData } from '../contexts/DataProvider.js';
+import { useData } from '../hooks/useData.js';
+import { useDataIntegration } from '../hooks/useDataIntegration.js';
 
 /** ---------- Layout ---------- */
 const POS = {
@@ -219,6 +220,9 @@ function FloorText({ x, y, text, size = 16, skewX = -22, scaleY = 0.68, rotate =
 
 /** ---------- Component ---------- */
 export default function FlowKPI() {
+  // Initialize data integration to populate Redux store
+  useDataIntegration();
+  
   // Use centralized data provider to avoid duplicate API calls
   const { powerFlow } = useData();
   const { data: powerFlowData, isLoading, error, isConnected, isOffline, consecutiveFailures, staleDataCount, lastUpdatedAt } = powerFlow;

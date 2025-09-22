@@ -2,7 +2,7 @@
  * Interval Test Component - Simple test to verify interval service works
  */
 import React, { useState, useEffect } from 'react';
-import { useDateRange } from '../../contexts/DateRangeContext';
+import { useDateRange } from '../../hooks/redux';
 
 const IntervalTest = () => {
   const [count, setCount] = useState(0);
@@ -14,7 +14,6 @@ const IntervalTest = () => {
     // Start test interval
     startIntervalRefresh(intervalKey, () => {
       setCount(prev => prev + 1);
-      console.log(`🔄 Test interval triggered! Count: ${count + 1}`);
     });
 
     // Cleanup

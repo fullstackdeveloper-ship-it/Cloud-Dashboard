@@ -2,7 +2,7 @@
  * Interval Status Component - Shows current interval status
  */
 import React from 'react';
-import { useDateRange } from '../../contexts/DateRangeContext';
+import { useDateRange } from '../../hooks/redux';
 import { Clock, RefreshCw } from 'lucide-react';
 
 const IntervalStatus = () => {

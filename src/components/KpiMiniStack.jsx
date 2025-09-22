@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useData } from '../contexts/DataProvider.js';
+import { useData } from '../hooks/useData.js';
+import { useDataIntegration } from '../hooks/useDataIntegration.js';
 
 const KpiMiniCard = ({ title, value, unit, icon }) => {
   return (
@@ -19,7 +20,10 @@ const KpiMiniCard = ({ title, value, unit, icon }) => {
 };
 
 const KpiMiniStack = () => {
-  // Get power mix data to calculate CO2 saved
+  // Initialize data integration to populate Redux store
+  useDataIntegration();
+  
+  // Get power mix data from Redux store
   const { powerMix } = useData();
   const { data: powerMixData, isLoading, error } = powerMix;
   
@@ -45,9 +49,6 @@ const KpiMiniStack = () => {
       setCo2Saved(totalCo2Saved);
       
       // Debug logging
-      console.log('🌱 CO2 Calculation:');
-      console.log(`   Data points: ${rawData.length}`);
-      console.log(`   Total CO2 Saved: ${totalCo2Saved.toFixed(3)} kg`);
     } else {
       setCo2Saved(0);
     }

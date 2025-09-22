@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, MapPin, Clock, RefreshCw, CalendarDays, BarChart3 } from 'lucide-react';
 import ProfileDropdown from '../ProfileDropdown';
-import { useDateRange } from '../../contexts/DateRangeContext';
+import { useDateRange } from '../../hooks/redux';
 // Remove useRefresh import as we'll use global refresh
 
 const Header = () => {
   // Get global date range context
   const {
     selectedSite,
-    setSelectedSite,
     updateSelectedSite, // Use the new function that saves to localStorage
     fromDateTime,
     setFromDateTime,
@@ -17,7 +16,6 @@ const Header = () => {
     appliedFromDateTime, // Applied values for display
     appliedEndDateTime, // Applied values for display
     selectedInterval,
-    setSelectedInterval,
     updateSelectedInterval, // Use the new function that saves to localStorage
     isUsingTodayDefault,
     setIsUsingTodayDefault,
@@ -59,20 +57,17 @@ const Header = () => {
 
   // Handle global refresh
   const handleGlobalRefresh = async () => {
-    console.log('🔄 Global refresh button clicked');
     setIsRefreshing(true);
     
     try {
       // Trigger global refresh for all KPI components
       triggerGlobalRefresh();
-      console.log('✅ Global refresh triggered for all KPI data');
       
       // Simulate loading time for better UX
       setTimeout(() => {
         setIsRefreshing(false);
       }, 1000);
     } catch (error) {
-      console.error('❌ Global refresh error:', error);
       setIsRefreshing(false);
     }
   };
@@ -368,7 +363,6 @@ const Header = () => {
                           setSelectedPreset('today');
                         } else {
                           // Determine which preset matches current selection
-                          const now = new Date();
                           const fromTime = new Date(fromDateTime);
                           const toTime = new Date(endDateTime);
                           const diffHours = (toTime - fromTime) / (1000 * 60 * 60);

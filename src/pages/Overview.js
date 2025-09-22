@@ -7,7 +7,7 @@ import NotificationsCard from '../components/NotificationsCard.jsx';
 import RightMetricsPanel from '../components/RightMetricsPanel.jsx';
 import PowerMixChart from '../components/PowerMixChart.jsx';
 import EnergyMixChart from '../components/EnergyMixChart.jsx';
-import { useDateRange } from '../contexts/DateRangeContext';
+import { useDateRange } from '../hooks/redux';
 
 const Overview = () => {
   // Get global date range context (not used for Power Mix chart anymore)

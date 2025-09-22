@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { User, ChevronDown } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/redux';
 
 const ProfileDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);

@@ -1,41 +1,24 @@
-import { configureStore, createSlice } from '@reduxjs/toolkit';
-
-// Simple demo slice for any components that might still use Redux
-const demoSlice = createSlice({
-  name: 'demo',
-  initialState: {
-    alerts: {
-      unreadCount: 0
-    },
-    sensor: {
-      data: {}
-    },
-    logs: {
-      data: []
-    }
-  },
-  reducers: {
-    // Dummy reducers for compatibility
-    setAlerts: (state, action) => {
-      state.alerts = action.payload;
-    },
-    setSensorData: (state, action) => {
-      state.sensor.data = action.payload;
-    },
-    setLogs: (state, action) => {
-      state.logs.data = action.payload;
-    }
-  }
-});
-
-export const { setAlerts, setSensorData, setLogs } = demoSlice.actions;
+import { configureStore } from '@reduxjs/toolkit';
+import authReducer from './slices/authSlice';
+import appReducer from './slices/appSlice';
+import dateRangeReducer from './slices/dateRangeSlice';
+import dataReducer from './slices/dataSlice';
 
 export const store = configureStore({
   reducer: {
-    demo: demoSlice.reducer,
-    // For backward compatibility with existing components
-    alerts: (state = { unreadCount: 0 }) => state,
-    sensor: (state = { data: {} }) => state,
-    logs: (state = { data: [] }) => state,
+    auth: authReducer,
+    app: appReducer,
+    dateRange: dateRangeReducer,
+    data: dataReducer
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: ['data/setPowerFlowData', 'data/setPowerMixData'],
+        ignoredPaths: ['data.powerFlow.data', 'data.powerMix.data']
+      }
+    }),
+  devTools: process.env.NODE_ENV !== 'production'
 });
+
+export default store;

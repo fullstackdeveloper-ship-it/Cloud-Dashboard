@@ -1,39 +1,41 @@
-import { useData as useDataContext } from '../contexts/DataProvider';
+import { useData as useDataRedux } from './redux';
+import { useDispatch } from 'react-redux';
+import { refreshAll, refreshPowerFlow, refreshPowerMix } from '../store/slices/dataSlice';
 
 /**
- * Custom hook for accessing data context
+ * Custom hook for accessing data from Redux store
  * Provides a clean API for components to access data
  */
 export const useData = () => {
-  const context = useDataContext();
-  return context;
+  return useDataRedux();
 };
 
 /**
  * Hook for accessing specific data sources
- * @param {string} dataSource - The data source to access ('powerMix', 'kpi', 'alarms', 'equipment')
+ * @param {string} dataSource - The data source to access ('powerMix', 'powerFlow')
  */
 export const useDataSource = (dataSource) => {
-  const context = useDataContext();
+  const data = useDataRedux();
   
-  if (!context[dataSource]) {
-    throw new Error(`Data source '${dataSource}' not found in context`);
+  if (!data[dataSource]) {
+    throw new Error(`Data source '${dataSource}' not found in Redux store`);
   }
   
-  return context[dataSource];
+  return data[dataSource];
 };
 
 /**
  * Hook for refresh functionality
  */
 export const useRefresh = () => {
-  const context = useDataContext();
+  const data = useDataRedux();
+  const dispatch = useDispatch();
   
   return {
-    refreshAll: context.refreshAll,
-    refreshPowerMix: context.refreshPowerMix,
-    // refreshKpi: context.refreshKpi,
-    isLoading: context.isLoading,
-    hasError: context.hasError,
+    refreshAll: () => dispatch(refreshAll()),
+    refreshPowerMix: () => dispatch(refreshPowerMix()),
+    refreshPowerFlow: () => dispatch(refreshPowerFlow()),
+    isLoading: data.powerMix.isLoading || data.powerFlow.isLoading,
+    hasError: !!(data.powerMix.error || data.powerFlow.error),
   };
 };

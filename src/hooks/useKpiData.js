@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import kpiApiService from '../services/kpiApiService.js';
 import apiCallManager from '../services/apiCallManager.js';
-import { useDateRange } from '../contexts/DateRangeContext.js';
+import { useDateRange } from './redux';
 
 const useKpiData = (controllerId, dataType = 'powerFlow', options = {}) => {
   const [data, setData] = useState(null);
@@ -30,7 +30,6 @@ const useKpiData = (controllerId, dataType = 'powerFlow', options = {}) => {
 
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!controllerId) {
-      console.warn('No controller ID provided');
       return;
     }
 
@@ -39,17 +38,13 @@ const useKpiData = (controllerId, dataType = 'powerFlow', options = {}) => {
     
     // Prevent duplicate calls unless it's a forced refresh
     if (!forceRefresh && isFetchingRef.current) {
-      console.log(`⏸️ Skipping duplicate ${dataType} fetch request (already fetching)`);
       return;
     }
 
     // Check if we're fetching the same data (only for non-forced refreshes)
     if (!forceRefresh && lastFetchParamsRef.current === callKey) {
-      console.log(`⏸️ Skipping duplicate ${dataType} fetch with same parameters`);
       return;
     }
-
-    console.log(`🔄 Starting ${dataType} fetch with key: ${callKey}`);
 
     isFetchingRef.current = true;
     lastFetchParamsRef.current = callKey;
@@ -85,27 +80,22 @@ const useKpiData = (controllerId, dataType = 'powerFlow', options = {}) => {
         const newStaleCount = staleDataCount + 1;
         setStaleDataCount(newStaleCount);
         
-        console.log(`⚠️ ${dataType} data is stale (same updatedAt: ${currentUpdatedAt}) - count: ${newStaleCount}`);
         
         // Mark as offline if stale data appears 3+ times
         if (newStaleCount >= 3) {
           setIsOffline(true);
-          console.log(`🔴 ${dataType} marked as offline due to stale data (${newStaleCount} times)`);
         }
       } else {
         // New timestamp - data is fresh
         setStaleDataCount(0);
         setIsOffline(false);
         setLastUpdatedAt(currentUpdatedAt);
-        console.log(`✅ ${dataType} data is fresh (updatedAt: ${currentUpdatedAt})`);
       }
       
       // Reset failure count on successful fetch
       setConsecutiveFailures(0);
       
-      console.log(`✅ ${dataType} data loaded successfully`, result);
     } catch (err) {
-      console.error(`❌ Failed to fetch ${dataType} data:`, err);
       setError(err.message);
       
       // Increment consecutive failures
@@ -118,7 +108,6 @@ const useKpiData = (controllerId, dataType = 'powerFlow', options = {}) => {
       // Check if we should mark as offline (3 consecutive failures)
       if (newFailureCount >= 3) {
         setIsOffline(true);
-        console.log(`🔴 ${dataType} marked as offline after ${newFailureCount} consecutive failures`);
       }
       
       // Set fallback data based on data type
@@ -163,7 +152,6 @@ const useKpiData = (controllerId, dataType = 'powerFlow', options = {}) => {
   // Listen to global refresh trigger (separate from dependency changes)
   useEffect(() => {
     if (globalRefreshTrigger !== null && globalRefreshTrigger > 0) {
-      console.log(`🔄 Global refresh triggered for ${dataType} data`);
       // Reset fetch state to allow refresh
       isFetchingRef.current = false;
       lastFetchParamsRef.current = null;
@@ -182,7 +170,6 @@ const useKpiData = (controllerId, dataType = 'powerFlow', options = {}) => {
     
     // Start interval refresh using the global interval service
     startIntervalRefresh(intervalKey, () => {
-      console.log(`🔄 Interval refresh triggered for ${dataType} (${selectedInterval})`);
       // Only fetch if not already fetching
       if (!isFetchingRef.current) {
         fetchData(true);
