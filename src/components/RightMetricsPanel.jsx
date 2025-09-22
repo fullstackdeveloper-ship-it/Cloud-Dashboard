@@ -55,45 +55,50 @@ const RightMetricsPanel = ({ className }) => {
     }
   }, [powerMixData]);
 
-  // Calculate power values from energy data
-  const getPowerValues = () => {
-    if (!energyData?.totals || !energyData?.range?.hours) {
+  // Get energy values directly from energy data
+  const getEnergyValues = () => {
+    if (!energyData?.totals) {
       return {
-        solarPower: '0.0',
-        gensetPower: '0.0', 
-        gridPower: '0.0',
-        loadPower: '0.0'
+        solarEnergy: '0.0',
+        gensetEnergy: '0.0', 
+        gridEnergy: '0.0',
+        loadEnergy: '0.0'
       };
     }
     
-    const hours = energyData.range.hours;
     const totals = energyData.totals;
     
-    const solarPower = (totals.kWh_PV / hours).toFixed(1);
-    const gensetPower = (totals.kWh_Gen / hours).toFixed(1);
-    const gridImportPower = (totals.kWh_Grid_Import / hours).toFixed(1);
-    const gridExportPower = (totals.kWh_Grid_Export / hours).toFixed(1);
-    const loadPower = (totals.kWh_Load / hours).toFixed(1);
+    // Display energy values directly (kWh)
+    const solarEnergy = totals.kWh_PV.toFixed(1);
+    const gensetEnergy = totals.kWh_Gen.toFixed(1);
+    const gridImportEnergy = totals.kWh_Grid_Import.toFixed(1);
+    const gridExportEnergy = totals.kWh_Grid_Export.toFixed(1);
+    const loadEnergy = totals.kWh_Load.toFixed(1);
     
-    // Calculate net grid power (import - export)
-    const netGridPower = (parseFloat(gridImportPower) - parseFloat(gridExportPower)).toFixed(1);
-    const gridPower = parseFloat(netGridPower) >= 0 ? `+${netGridPower}` : netGridPower;
+    // Calculate net grid energy (import - export)
+    const netGridEnergy = (parseFloat(gridImportEnergy) - parseFloat(gridExportEnergy)).toFixed(1);
+    const gridEnergy = parseFloat(netGridEnergy) >= 0 ? `+${netGridEnergy}` : netGridEnergy;
+    
+    // Debug logging to verify values
+    console.log('🔍 RightMetricsPanel Energy Values:');
+    console.log(`   Energy totals: PV=${totals.kWh_PV}, Gen=${totals.kWh_Gen}, Grid=${totals.kWh_Grid}, Load=${totals.kWh_Load}`);
+    console.log(`   Display values: Solar=${solarEnergy}, Gen=${gensetEnergy}, Grid=${gridEnergy}, Load=${loadEnergy}`);
     
     return {
-      solarPower,
-      gensetPower,
-      gridPower,
-      loadPower
+      solarEnergy,
+      gensetEnergy,
+      gridEnergy,
+      loadEnergy
     };
   };
 
-  const powerValues = getPowerValues();
+  const energyValues = getEnergyValues();
   
   const energyMetrics = [
-    { title: 'Solar Generation', value: `${powerValues.solarPower} kW` },
-    { title: 'Genset Production', value: `${powerValues.gensetPower} kW` },
-    { title: 'Grid Import/Export', value: `${powerValues.gridPower} kW` },
-    { title: 'Load Consumption', value: `${powerValues.loadPower} kW` }
+    { title: 'Solar Generation', value: `${energyValues.solarEnergy} kWh` },
+    { title: 'Genset Production', value: `${energyValues.gensetEnergy} kWh` },
+    { title: 'Grid Import/Export', value: `${energyValues.gridEnergy} kWh` },
+    { title: 'Load Consumption', value: `${energyValues.loadEnergy} kWh` }
   ];
 
   const performanceMetrics = [

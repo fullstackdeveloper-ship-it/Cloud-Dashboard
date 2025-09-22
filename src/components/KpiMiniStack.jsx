@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useData } from '../contexts/DataProvider.js';
 
 const KpiMiniCard = ({ title, value, unit, icon }) => {
   return (
@@ -18,14 +19,43 @@ const KpiMiniCard = ({ title, value, unit, icon }) => {
 };
 
 const KpiMiniStack = () => {
-  const [co2Saved, setCo2Saved] = useState(1247.5);
+  // Get power mix data to calculate CO2 saved
+  const { powerMix } = useData();
+  const { data: powerMixData, isLoading, error } = powerMix;
+  
+  const [co2Saved, setCo2Saved] = useState(0);
   const [waterSaved, setWaterSaved] = useState(892.3);
   const [treesPlanted, setTreesPlanted] = useState(54);
 
-  // Simulate changing data
+  // Calculate CO2 saved based on W_PV data
+  useEffect(() => {
+    if (powerMixData?.data && powerMixData.data.length > 0) {
+      const rawData = powerMixData.data;
+      
+      // Calculate CO2 saved using formula: (W_pv/60) * 0.0007
+      let totalCo2Saved = 0;
+      
+      rawData.forEach(item => {
+        const w_pv = typeof item.W_PV === 'number' ? item.W_PV : 0;
+        // CO2 Saved in kg = (W_pv/60) * 0.0007
+        const co2ForThisPoint = (w_pv / 60) * 0.0007;
+        totalCo2Saved += co2ForThisPoint;
+      });
+      
+      setCo2Saved(totalCo2Saved);
+      
+      // Debug logging
+      console.log('🌱 CO2 Calculation:');
+      console.log(`   Data points: ${rawData.length}`);
+      console.log(`   Total CO2 Saved: ${totalCo2Saved.toFixed(3)} kg`);
+    } else {
+      setCo2Saved(0);
+    }
+  }, [powerMixData]);
+
+  // Keep other metrics with simulated data
   useEffect(() => {
     const interval = setInterval(() => {
-      setCo2Saved(prev => prev + (Math.random() * 2 - 1));
       setWaterSaved(prev => prev + (Math.random() * 1.5 - 0.5));
       setTreesPlanted(prev => Math.max(1, prev + Math.floor(Math.random() * 3 - 1)));
     }, 5000);
@@ -37,7 +67,7 @@ const KpiMiniStack = () => {
     <div className="flex flex-col gap-3 h-full">
       <KpiMiniCard
         title="CO2 Saved"
-        value={co2Saved.toFixed(1)}
+        value={isLoading ? "---" : error ? "Error" : co2Saved.toFixed(1)}
         unit="kg"
         icon="🌱"
       />

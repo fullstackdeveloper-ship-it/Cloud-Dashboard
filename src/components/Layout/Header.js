@@ -31,6 +31,7 @@ const Header = () => {
   const [showSiteDropdown, setShowSiteDropdown] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showIntervalDropdown, setShowIntervalDropdown] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState('today'); // Track selected preset
 
   // Site options
   const sites = [
@@ -295,6 +296,8 @@ const Header = () => {
                         <button
                           key={preset.label}
                           onClick={() => {
+                            setSelectedPreset(preset.type || preset.label.toLowerCase().replace(/\s+/g, '-'));
+                            
                             if (preset.type === 'today') {
                               // Set to full day (12:00 AM to tomorrow 12:00 AM)
                               const now = new Date();
@@ -343,7 +346,7 @@ const Header = () => {
                             }
                           }}
                           className={`px-2 py-1 text-xs rounded-lg transition-all duration-200 ${
-                            preset.type === 'today' && isUsingTodayDefault
+                            selectedPreset === (preset.type || preset.label.toLowerCase().replace(/\s+/g, '-'))
                               ? 'bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white'
                               : 'bg-gray-100 hover:bg-gradient-to-r hover:from-[#0097b2]/10 hover:to-[#198c1a]/10 hover:border hover:border-[#0097b2]/20'
                           }`}
@@ -360,6 +363,24 @@ const Header = () => {
                       onClick={() => {
                         applyDateTimeChanges();
                         setShowDatePicker(false);
+                        // Update selected preset based on current selection
+                        if (isUsingTodayDefault) {
+                          setSelectedPreset('today');
+                        } else {
+                          // Determine which preset matches current selection
+                          const now = new Date();
+                          const fromTime = new Date(fromDateTime);
+                          const toTime = new Date(endDateTime);
+                          const diffHours = (toTime - fromTime) / (1000 * 60 * 60);
+                          const diffDays = (toTime - fromTime) / (1000 * 60 * 60 * 24);
+                          
+                          if (diffHours <= 1) setSelectedPreset('last-hour');
+                          else if (diffHours <= 6) setSelectedPreset('last-6-hours');
+                          else if (diffHours <= 24) setSelectedPreset('last-24-hours');
+                          else if (diffDays <= 3) setSelectedPreset('last-3-days');
+                          else if (diffDays <= 7) setSelectedPreset('last-week');
+                          else setSelectedPreset('custom');
+                        }
                       }}
                       className="w-full px-4 py-2 bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white rounded-lg hover:shadow-lg transition-all duration-300 font-medium"
                     >
