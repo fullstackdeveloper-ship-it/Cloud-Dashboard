@@ -13,8 +13,7 @@ export function calcEnergyWithDuration(rows) {
 
 
   // Step 2: Calculate energy properly (Power * Time)
-  // Each data point represents 1 minute, so dtHours = 1/60 hours
-  const dtHours = 1 / 60; // 1 minute in hours
+  // Each data point represents 1 minute
   let kWh_PV = 0;
   let kWh_Gen = 0;
   let kWh_Grid = 0;
@@ -42,9 +41,7 @@ export function calcEnergyWithDuration(rows) {
     kWh_Grid: +kWh_Grid.toFixed(3),
   };
 
-  result["kWh_Load"] = +(
-    result.kWh_PV + result.kWh_Gen + result.kWh_Grid
-  ).toFixed(3);
+  result["kWh_Load"] = +kWh_Load.toFixed(3);
 
 
   // Step 4: Import / Export for Grid (row-by-row energy sign)

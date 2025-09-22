@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import useKpiData from './useKpiData';
 import { useDateRange } from './redux';
 import {
@@ -16,9 +16,7 @@ export const useDataIntegration = () => {
   const dispatch = useDispatch();
   const { getControllerId, getApiTimeRange, refreshTrigger } = useDateRange();
   
-  // Get refresh timestamps from Redux store
-  const powerFlowLastUpdated = useSelector(state => state.data.powerFlow.lastUpdatedAt);
-  const powerMixLastUpdated = useSelector(state => state.data.powerMix.lastUpdatedAt);
+  // Note: Refresh timestamps are not needed here as refresh is handled by global triggers
   
   // Get power mix data using existing hook
   const powerMixData = useKpiData(getControllerId(), 'powerMix', {
@@ -62,20 +60,8 @@ export const useDataIntegration = () => {
     }));
   }, [dispatch, powerFlowData.data, powerFlowData.isLoading, powerFlowData.error, powerFlowData.isConnected, powerFlowData.isOffline, powerFlowData.consecutiveFailures]);
 
-  // Trigger data refresh when refresh actions are dispatched
-  useEffect(() => {
-    if (powerFlowLastUpdated) {
-      // Trigger power flow data refresh
-      powerFlowData.refresh?.();
-    }
-  }, [powerFlowLastUpdated, powerFlowData]);
-
-  useEffect(() => {
-    if (powerMixLastUpdated) {
-      // Trigger power mix data refresh
-      powerMixData.refresh?.();
-    }
-  }, [powerMixLastUpdated, powerMixData]);
+  // Note: Refresh is handled by the global refresh trigger in useKpiData
+  // No need for additional refresh triggers here to avoid recursion
 
   return {
     powerMix: powerMixData,
