@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import BaseChart from './common/BaseChart';
 import { useData } from '../contexts/DataProvider.js';
+import { calcEnergyWithDuration } from '../utils/energyCalculator.js';
 
 const PowerMixChart = ({ className }) => {
   // Use centralized data provider to avoid duplicate API calls
@@ -37,6 +38,12 @@ const PowerMixChart = ({ className }) => {
     
     return processedItem;
   });
+
+  // Calculate energy data when we have valid data
+  if (chartData.length > 0) {
+    const energyData = calcEnergyWithDuration(chartData);
+    console.log('🔋 Energy Calculation Result:', energyData);
+  }
   
   // Check if all values are zero or if we have no data
   const hasValidData = chartData.length > 0 && chartData.some(item => 

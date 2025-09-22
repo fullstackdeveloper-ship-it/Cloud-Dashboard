@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useData } from '../contexts/DataProvider.js';
+import { calcEnergyWithDuration } from '../utils/energyCalculator.js';
 
-const MetricCard = ({ title, value }) => {
+const MetricCard = ({ title, value, isLoading = false, error = false }) => {
   return (
     <div className="rounded-lg bg-gray-50 border border-gray-200 p-2 h-[64px] flex items-center justify-between">
       <div className="flex-1">
@@ -8,22 +10,90 @@ const MetricCard = ({ title, value }) => {
           {title}
         </h4>
       </div>
-      {value && (
-        <div className="text-right">
+      <div className="text-right">
+        {isLoading ? (
+          <span className="text-sm font-bold text-gray-400">---</span>
+        ) : error ? (
+          <span className="text-sm font-bold text-red-500">Error</span>
+        ) : value ? (
           <span className="text-sm font-bold text-gray-900">{value}</span>
-        </div>
-      )}
+        ) : (
+          <span className="text-sm font-bold text-gray-400">N/A</span>
+        )}
+      </div>
     </div>
   );
 };
 
 const RightMetricsPanel = ({ className }) => {
-  // Mock data for the metrics
+  // Get power mix data to calculate energy values
+  const { powerMix } = useData();
+  const { data: powerMixData, isLoading, error } = powerMix;
+  
+  const [energyData, setEnergyData] = useState(null);
+  
+  // Calculate energy data when power mix data changes
+  useEffect(() => {
+    if (powerMixData?.data && powerMixData.data.length > 0) {
+      const rawData = powerMixData.data;
+      
+      // Process data for energy calculation
+      const processedData = rawData.map(item => ({
+        time: item.time || new Date().toISOString(),
+        W_PV: typeof item.W_PV === 'number' ? item.W_PV : 0,
+        W_Grid: typeof item.W_Grid === 'number' ? item.W_Grid : 0,
+        W_Gen: typeof item.W_Gen === 'number' ? item.W_Gen : 0,
+        W_Load: typeof item.W_Load === 'number' ? item.W_Load : 0,
+      }));
+      
+      // Calculate energy values
+      const calculatedEnergy = calcEnergyWithDuration(processedData);
+      setEnergyData(calculatedEnergy);
+    } else {
+      // Clear energy data when no power mix data is available
+      setEnergyData(null);
+    }
+  }, [powerMixData]);
+
+  // Calculate power values from energy data
+  const getPowerValues = () => {
+    if (!energyData?.totals || !energyData?.range?.hours) {
+      return {
+        solarPower: '0.0',
+        gensetPower: '0.0', 
+        gridPower: '0.0',
+        loadPower: '0.0'
+      };
+    }
+    
+    const hours = energyData.range.hours;
+    const totals = energyData.totals;
+    
+    const solarPower = (totals.kWh_PV / hours).toFixed(1);
+    const gensetPower = (totals.kWh_Gen / hours).toFixed(1);
+    const gridImportPower = (totals.kWh_Grid_Import / hours).toFixed(1);
+    const gridExportPower = (totals.kWh_Grid_Export / hours).toFixed(1);
+    const loadPower = (totals.kWh_Load / hours).toFixed(1);
+    
+    // Calculate net grid power (import - export)
+    const netGridPower = (parseFloat(gridImportPower) - parseFloat(gridExportPower)).toFixed(1);
+    const gridPower = parseFloat(netGridPower) >= 0 ? `+${netGridPower}` : netGridPower;
+    
+    return {
+      solarPower,
+      gensetPower,
+      gridPower,
+      loadPower
+    };
+  };
+
+  const powerValues = getPowerValues();
+  
   const energyMetrics = [
-    { title: 'Solar Generation', value: '45.2 kW' },
-    { title: 'Genset Production', value: '12.8 kW' },
-    { title: 'Grid Import/Export', value: '8.5 kW' },
-    { title: 'Load Consumption', value: '66.5 kW' }
+    { title: 'Solar Generation', value: `${powerValues.solarPower} kW` },
+    { title: 'Genset Production', value: `${powerValues.gensetPower} kW` },
+    { title: 'Grid Import/Export', value: `${powerValues.gridPower} kW` },
+    { title: 'Load Consumption', value: `${powerValues.loadPower} kW` }
   ];
 
   const performanceMetrics = [
@@ -51,6 +121,8 @@ const RightMetricsPanel = ({ className }) => {
                 key={index}
                 title={metric.title}
                 value={metric.value}
+                isLoading={isLoading}
+                error={error}
               />
             ))}
           </div>
