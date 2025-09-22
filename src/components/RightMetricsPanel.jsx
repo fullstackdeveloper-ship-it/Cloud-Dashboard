@@ -75,9 +75,8 @@ const RightMetricsPanel = ({ className }) => {
     const gridExportEnergy = totals.kWh_Grid_Export.toFixed(1);
     const loadEnergy = totals.kWh_Load.toFixed(1);
     
-    // Calculate net grid energy (import - export)
-    const netGridEnergy = (parseFloat(gridImportEnergy) - parseFloat(gridExportEnergy)).toFixed(1);
-    const gridEnergy = parseFloat(netGridEnergy) >= 0 ? `+${netGridEnergy}` : netGridEnergy;
+    // Display grid energy as import/export format
+    const gridEnergy = `${gridImportEnergy}/${gridExportEnergy}`;
     
     // Debug logging to verify values
     console.log('🔍 RightMetricsPanel Energy Values:');

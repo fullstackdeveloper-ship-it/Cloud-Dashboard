@@ -31,17 +31,11 @@ export function calcEnergyWithDuration(rows) {
   console.log(`⏱️ calcEnergyWithDuration: Each data point represents ${dtHours} hours (1 minute)`);
   
   for (const r of rows) {
-    // Convert watts to kilowatts and multiply by time duration
-    const pv_kW = (r.W_PV || 0) / 1000;
-    const gen_kW = (r.W_Gen || 0) / 1000;
-    const grid_kW = (r.W_Grid || 0) / 1000;
-    const load_kW = (r.W_Load || 0) / 1000;
-
-    // Energy = Power * Time
-    const pv_energy = pv_kW * dtHours;
-    const gen_energy = gen_kW * dtHours;
-    const grid_energy = grid_kW * dtHours;
-    const load_energy = load_kW * dtHours;
+    // Direct calculation: W_PV / 60, W_Grid / 60, W_Gen / 60
+    const pv_energy = (r.W_PV || 0) / 60;
+    const gen_energy = (r.W_Gen || 0) / 60;
+    const grid_energy = (r.W_Grid || 0) / 60;
+    const load_energy = (r.W_Load || 0) / 60;
 
     kWh_PV += pv_energy;
     kWh_Gen += gen_energy;
@@ -49,7 +43,7 @@ export function calcEnergyWithDuration(rows) {
     kWh_Load += load_energy;
   }
 
-  console.log('📈 calcEnergyWithDuration: Energy calculations (kW * hours):');
+  console.log('📈 calcEnergyWithDuration: Energy calculations (W/60):');
   console.log(`   PV: ${kWh_PV.toFixed(3)} kWh, Gen: ${kWh_Gen.toFixed(3)} kWh, Grid: ${kWh_Grid.toFixed(3)} kWh, Load: ${kWh_Load.toFixed(3)} kWh`);
 
   // Step 3: Create result object with energy values
@@ -72,8 +66,7 @@ export function calcEnergyWithDuration(rows) {
   console.log('🔄 calcEnergyWithDuration: Calculating grid import/export...');
   
   for (const r of rows) {
-    const grid_kW = (r.W_Grid || 0) / 1000;
-    const e = grid_kW * dtHours;
+    const e = (r.W_Grid || 0) / 60;
     if (e > 0) kWhImport += e;
     else if (e < 0) kWhExport += Math.abs(e);
   }
