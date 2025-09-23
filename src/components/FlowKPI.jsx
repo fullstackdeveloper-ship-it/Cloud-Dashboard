@@ -372,7 +372,12 @@ export default function FlowKPI() {
             </span>
             {lastUpdatedAt && (
               <span className="text-xs text-gray-400 font-mono">
-                {new Date(lastUpdatedAt).toLocaleTimeString()}
+                {new Date(lastUpdatedAt).toLocaleTimeString('en-US', { 
+                  hour: '2-digit', 
+                  minute: '2-digit', 
+                  second: '2-digit',
+                  hour12: false 
+                })}
               </span>
             )}
           </div>

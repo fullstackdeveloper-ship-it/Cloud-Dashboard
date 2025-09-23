@@ -41,6 +41,7 @@ const KpiMiniStack = () => {
         const co2ForThisPoint = (w_pv / 60) * 0.0007;
         totalCo2Saved += co2ForThisPoint;
       });
+      console.log(totalCo2Saved,"totalCo2Saved")
       
       setCo2Saved(totalCo2Saved);
       

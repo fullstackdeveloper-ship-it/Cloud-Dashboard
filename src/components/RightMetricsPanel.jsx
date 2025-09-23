@@ -58,6 +58,7 @@ const RightMetricsPanel = ({ className }) => {
       // Calculate energy values with error handling
       try {
         const calculatedEnergy = calcEnergyWithDuration(processedData);
+        console.log(calcEnergyWithDuration(processedData),"calculatedEnergy")
         setEnergyData(calculatedEnergy);
       } catch (error) {
         console.error('Error calculating energy data:', error);

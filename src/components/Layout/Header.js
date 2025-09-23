@@ -82,9 +82,10 @@ const Header = () => {
         year: 'numeric'
       }),
       time: date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
+        hour: '2-digit', 
         minute: '2-digit',
-        hour12: true
+        second: '2-digit',
+        hour12: false
       })
     };
   };
@@ -211,7 +212,7 @@ const Header = () => {
                   {isUsingTodayDefault ? 'Today' : `${formatDateTime(appliedFromDateTime).date} - ${formatDateTime(appliedEndDateTime).date}`}
                 </div>
                 <div className="text-xs text-gray-600">
-                  {isUsingTodayDefault ? '12:00 AM → 12:00 AM (24h)' : `${formatDateTime(appliedFromDateTime).time} → ${formatDateTime(appliedEndDateTime).time}`}
+                  {isUsingTodayDefault ? '00:00:00 → 23:59:59' : `${formatDateTime(appliedFromDateTime).time} → ${formatDateTime(appliedEndDateTime).time}`}
                 </div>
               </div>
               <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${showDatePicker ? 'rotate-180' : ''}`} />

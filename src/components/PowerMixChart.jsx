@@ -22,6 +22,9 @@ const PowerMixChart = ({ className }) => {
   // Get date range from filter
   const { fromDateTime, endDateTime } = useDateRange();
   
+  console.log('PowerMixChart - fromDateTime:', fromDateTime);
+  console.log('PowerMixChart - endDateTime:', endDateTime);
+  
   // Helper function to ensure number values
   const ensureNumber = (value) => {
     if (value === null || value === undefined || isNaN(value)) return 0;
@@ -31,9 +34,11 @@ const PowerMixChart = ({ className }) => {
 
   // Generate time series backbone with gaps for missing data
   const chartData = useMemo(() => {
+    // The data structure from powerMixService is: { data: [...], metadata: {...} }
     const rawData = powerMixData?.data || [];
     console.log('PowerMixChart - rawData:', rawData);
     console.log('PowerMixChart - powerMixData:', powerMixData);
+    console.log('PowerMixChart - rawData length:', rawData.length);
     
     if (!fromDateTime || !endDateTime) return [];
 
@@ -87,20 +92,25 @@ const PowerMixChart = ({ className }) => {
 
     // Create a map of existing data for quick lookup
     const dataMap = new Map();
-    rawData
-      .filter(item => {
-        const itemTime = new Date(item.time);
-        return itemTime >= startTime && itemTime <= endTime;
-      })
-      .forEach(item => {
-        const timeKey = new Date(item.time).toISOString();
-        dataMap.set(timeKey, {
-          W_PV: ensureNumber(item.W_PV),
-          W_Grid: ensureNumber(item.W_Grid),
-          W_Gen: ensureNumber(item.W_Gen),
-          W_Load: ensureNumber(item.W_Load),
-        });
+    const filteredData = rawData.filter(item => {
+      const itemTime = new Date(item.time);
+      return itemTime >= startTime && itemTime <= endTime;
+    });
+    
+    console.log('PowerMixChart - filteredData length:', filteredData.length);
+    console.log('PowerMixChart - startTime:', startTime.toISOString());
+    console.log('PowerMixChart - endTime:', endTime.toISOString());
+    console.log('PowerMixChart - sample rawData item:', rawData[0]);
+    
+    filteredData.forEach(item => {
+      const timeKey = new Date(item.time).toISOString();
+      dataMap.set(timeKey, {
+        W_PV: ensureNumber(item.W_PV),
+        W_Grid: ensureNumber(item.W_Grid),
+        W_Gen: ensureNumber(item.W_Gen),
+        W_Load: ensureNumber(item.W_Load),
       });
+    });
 
     // Merge actual data with time series backbone
     const mergedData = timeSeries.map(timePoint => {
@@ -119,6 +129,9 @@ const PowerMixChart = ({ className }) => {
       return timePoint;
     });
 
+    console.log('PowerMixChart - mergedData length:', mergedData.length);
+    console.log('PowerMixChart - mergedData with data:', mergedData.filter(d => d.hasData).length);
+    console.log('PowerMixChart - sample mergedData item:', mergedData[0]);
 
     return mergedData;
   }, [powerMixData, fromDateTime, endDateTime]);
@@ -170,9 +183,10 @@ const PowerMixChart = ({ className }) => {
                 return date.toLocaleString('en-US', { 
                   month: 'short',
                   day: 'numeric',
-                  hour: 'numeric', 
+                  hour: '2-digit', 
                   minute: '2-digit',
-                  hour12: true 
+                  second: '2-digit',
+                  hour12: false 
                 });
               } catch (error) {
                 return value;
@@ -203,9 +217,10 @@ const PowerMixChart = ({ className }) => {
               return `Time: ${date.toLocaleString('en-US', { 
                 month: 'short',
                 day: 'numeric',
-                hour: 'numeric', 
+                hour: '2-digit', 
                 minute: '2-digit',
-                hour12: true 
+                second: '2-digit',
+                hour12: false 
               })}`;
             }}
           />
