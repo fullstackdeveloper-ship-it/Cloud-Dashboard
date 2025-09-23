@@ -38,17 +38,31 @@ const RightMetricsPanel = ({ className }) => {
       const rawData = powerMixData.data;
       
       // Process data for energy calculation
-      const processedData = rawData.map(item => ({
-        time: item.time || new Date().toISOString(),
-        W_PV: typeof item.W_PV === 'number' ? item.W_PV : 0,
-        W_Grid: typeof item.W_Grid === 'number' ? item.W_Grid : 0,
-        W_Gen: typeof item.W_Gen === 'number' ? item.W_Gen : 0,
-        W_Load: typeof item.W_Load === 'number' ? item.W_Load : 0,
-      }));
+      const processedData = rawData
+        .filter(item => item && item.time) // Only include items with valid time
+        .map((item, index) => ({
+          time: item.time,
+          W_PV: typeof item.W_PV === 'number' ? item.W_PV : 0,
+          W_Grid: typeof item.W_Grid === 'number' ? item.W_Grid : 0,
+          W_Gen: typeof item.W_Gen === 'number' ? item.W_Gen : 0,
+          W_Load: typeof item.W_Load === 'number' ? item.W_Load : 0,
+        }));
       
-      // Calculate energy values
-      const calculatedEnergy = calcEnergyWithDuration(processedData);
-      setEnergyData(calculatedEnergy);
+      // Check if we have valid data after filtering
+      if (processedData.length === 0) {
+        console.warn('No valid data points with time property found');
+        setEnergyData(null);
+        return;
+      }
+      
+      // Calculate energy values with error handling
+      try {
+        const calculatedEnergy = calcEnergyWithDuration(processedData);
+        setEnergyData(calculatedEnergy);
+      } catch (error) {
+        console.error('Error calculating energy data:', error);
+        setEnergyData(null);
+      }
     } else {
       // Clear energy data when no power mix data is available
       setEnergyData(null);

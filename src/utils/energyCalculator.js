@@ -3,9 +3,58 @@ export function calcEnergyWithDuration(rows) {
     return null;
   }
 
-  // Step 1: Time window (kept as-is)
-  const start = new Date(rows[0].time);
-  const end = new Date(rows[rows.length - 1].time);
+  // Step 1: Time window with validation
+  const firstRow = rows[0];
+  const lastRow = rows[rows.length - 1];
+  
+  if (!firstRow?.time || !lastRow?.time) {
+    console.warn('calcEnergyWithDuration: Invalid time data in rows');
+    return null;
+  }
+  
+  // Convert time format to proper date strings
+  const convertTimeToDate = (timeStr, isEndTime = false) => {
+    // If it's already a full ISO string, use it as is
+    if (timeStr.includes('T') || timeStr.includes('Z')) {
+      return new Date(timeStr);
+    }
+    
+    // If it's in HH:MM format, create a date for today
+    if (timeStr.match(/^\d{1,2}:\d{2}$/)) {
+      const today = new Date();
+      const [hours, minutes] = timeStr.split(':');
+      let date = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 
+                         parseInt(hours), parseInt(minutes), 0, 0);
+      
+      // If this is the end time and it's earlier than start time, assume it's next day
+      if (isEndTime) {
+        const startTime = firstRow.time;
+        if (startTime.match(/^\d{1,2}:\d{2}$/)) {
+          const [startHours] = startTime.split(':');
+          if (parseInt(hours) < parseInt(startHours)) {
+            date.setDate(date.getDate() + 1);
+          }
+        }
+      }
+      
+      return date;
+    }
+    
+    // Try to parse as regular date
+    return new Date(timeStr);
+  };
+  
+  const start = convertTimeToDate(firstRow.time);
+  const end = convertTimeToDate(lastRow.time, true);
+  
+  // Validate that dates are valid
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    console.warn('calcEnergyWithDuration: Invalid date values', { 
+      startTime: firstRow.time, 
+      endTime: lastRow.time 
+    });
+    return null;
+  }
 
   const diffMs = end - start;
   const minutes = diffMs / (1000 * 60);

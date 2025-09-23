@@ -32,6 +32,9 @@ const PowerMixChart = ({ className }) => {
   // Generate time series backbone with gaps for missing data
   const chartData = useMemo(() => {
     const rawData = powerMixData?.data || [];
+    console.log('PowerMixChart - rawData:', rawData);
+    console.log('PowerMixChart - powerMixData:', powerMixData);
+    
     if (!fromDateTime || !endDateTime) return [];
 
     const startTime = new Date(fromDateTime);
