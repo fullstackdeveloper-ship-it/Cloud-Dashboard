@@ -1,0 +1,164 @@
+{
+  "title": "Energy Monitoring Dashboard",
+  "description": "Real-time energy consumption and generation monitoring",
+  "panel": {
+    "title": "Energy Monitoring Dashboard",
+    "backgroundColor": "#ffffff",
+    "borderColor": "#e0e0e0",
+    "borderWidth": 1,
+    "borderRadius": 8
+  },
+  "refresh": {
+    "enabled": true,
+    "interval": 5000
+  },
+  "axes": {
+    "x": {
+      "type": "time",
+      "title": "Time",
+      "format": "HH:mm:ss",
+      "gridLines": true,
+      "show": true
+    },
+    "y": [
+      {
+        "title": "Power (W)",
+        "unit": "watts",
+        "min": 0,
+        "max": 300000,
+        "gridLines": true,
+        "show": true,
+        "side": "left"
+      }
+    ]
+  },
+  "series": [
+    {
+      "name": "PV Generation",
+      "type": "line",
+      "yAxis": 0,
+      "color": "#f39c12",
+      "lineWidth": 3,
+      "markerSize": 6,
+      "markerStyle": "circle",
+      "markerLineWidth": 2,
+      "markerLineColor": "#f39c12",
+      "fill": "none",
+      "dataField": "W_PV",
+      "unit": "W"
+    },
+    {
+      "name": "Load Consumption",
+      "type": "line",
+      "yAxis": 0,
+      "color": "#e74c3c",
+      "lineWidth": 3,
+      "markerSize": 6,
+      "markerStyle": "circle",
+      "markerLineWidth": 2,
+      "markerLineColor": "#e74c3c",
+      "fill": "none",
+      "dataField": "W_Load",
+      "unit": "W"
+    },
+    {
+      "name": "Grid Import/Export",
+      "type": "line",
+      "yAxis": 0,
+      "color": "#3498db",
+      "lineWidth": 2,
+      "markerSize": 5,
+      "markerStyle": "circle",
+      "markerLineWidth": 2,
+      "markerLineColor": "#3498db",
+      "fill": "none",
+      "dataField": "W_Grid",
+      "unit": "W"
+    },
+    {
+      "name": "Generator",
+      "type": "line",
+      "yAxis": 0,
+      "color": "#2ecc71",
+      "lineWidth": 2,
+      "markerSize": 5,
+      "markerStyle": "circle",
+      "markerLineWidth": 2,
+      "markerLineColor": "#2ecc71",
+      "fill": "none",
+      "dataField": "W_Gen",
+      "unit": "W"
+    }
+  ],
+  "thresholds": [
+    {
+      "value": 50000,
+      "color": "#f39c12",
+      "label": "High Load Warning",
+      "yAxis": 0
+    },
+    {
+      "value": 80000,
+      "color": "#e74c3c",
+      "label": "Critical Load",
+      "yAxis": 0
+    }
+  ],
+  "alerts": [
+    {
+      "name": "High Load Alert",
+      "condition": "W_Load > 80000",
+      "severity": "warning",
+      "message": "Load consumption is very high"
+    },
+    {
+      "name": "Grid Import Alert",
+      "condition": "W_Grid > 100000",
+      "severity": "info",
+      "message": "High grid import detected"
+    },
+    {
+      "name": "PV Generation Alert",
+      "condition": "W_PV < 10000",
+      "severity": "info",
+      "message": "Low PV generation"
+    }
+  ],
+  "annotations": [
+    {
+      "type": "line",
+      "time": "2025-09-23T07:00:00Z",
+      "label": "Morning Peak",
+      "color": "#f1c40f"
+    },
+    {
+      "type": "line",
+      "time": "2025-09-23T08:00:00Z",
+      "label": "Business Hours",
+      "color": "#3498db"
+    }
+  ],
+  "tooltip": {
+    "enabled": true,
+    "format": "HH:mm:ss",
+    "showValues": true,
+    "showUnits": true,
+    "mode": "all",
+    "shared": true,
+    "hoverinfo": "x+y+text",
+    "hovertemplate": "<b>%{fullData.name}</b><br>Time: %{x}<br>Power: %{y:,.0f} W<br><extra></extra>"
+  },
+  "legend": {
+    "enabled": true,
+    "position": "top",
+    "orientation": "horizontal"
+  },
+  "zoom": {
+    "enabled": true,
+    "type": "x"
+  },
+  "pan": {
+    "enabled": true,
+    "type": "x"
+  }
+}

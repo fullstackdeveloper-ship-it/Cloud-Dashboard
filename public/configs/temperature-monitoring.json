@@ -1,0 +1,130 @@
+{
+  "title": "Temperature Monitoring Dashboard",
+  "description": "Real-time temperature monitoring across multiple sensors",
+  "panel": {
+    "title": "Temperature Monitoring",
+    "backgroundColor": "#ffffff",
+    "borderColor": "#e0e0e0",
+    "borderWidth": 1,
+    "borderRadius": 8
+  },
+  "refresh": {
+    "enabled": true,
+    "interval": 10000
+  },
+  "axes": {
+    "x": {
+      "type": "time",
+      "title": "Time",
+      "format": "HH:mm:ss",
+      "gridLines": true,
+      "show": true
+    },
+    "y": [
+      {
+        "title": "Temperature (°C)",
+        "unit": "celsius",
+        "min": 0,
+        "max": 50,
+        "gridLines": true,
+        "show": true,
+        "side": "left"
+      }
+    ]
+  },
+  "series": [
+    {
+      "name": "Room Temperature",
+      "type": "line",
+      "yAxis": 0,
+      "color": "#3b82f6",
+      "lineWidth": 3,
+      "markerSize": 6,
+      "markerStyle": "circle",
+      "markerLineWidth": 2,
+      "markerLineColor": "#3b82f6",
+      "fill": "none",
+      "dataField": "temperature",
+      "unit": "°C"
+    },
+    {
+      "name": "Outdoor Temperature",
+      "type": "line",
+      "yAxis": 0,
+      "color": "#f59e0b",
+      "lineWidth": 2,
+      "markerSize": 5,
+      "markerStyle": "circle",
+      "markerLineWidth": 2,
+      "markerLineColor": "#f59e0b",
+      "fill": "none",
+      "dataField": "outdoor_temp",
+      "unit": "°C"
+    },
+    {
+      "name": "Humidity",
+      "type": "line",
+      "yAxis": 0,
+      "color": "#10b981",
+      "lineWidth": 2,
+      "markerSize": 5,
+      "markerStyle": "circle",
+      "markerLineWidth": 2,
+      "markerLineColor": "#10b981",
+      "fill": "none",
+      "dataField": "humidity",
+      "unit": "%"
+    }
+  ],
+  "thresholds": [
+    {
+      "value": 30,
+      "color": "#f59e0b",
+      "label": "High Temperature Warning",
+      "yAxis": 0
+    },
+    {
+      "value": 35,
+      "color": "#ef4444",
+      "label": "Critical Temperature",
+      "yAxis": 0
+    }
+  ],
+  "alerts": [
+    {
+      "name": "High Temperature Alert",
+      "condition": "temperature > 30",
+      "severity": "warning",
+      "message": "Room temperature is high"
+    },
+    {
+      "name": "Critical Temperature Alert",
+      "condition": "temperature > 35",
+      "severity": "critical",
+      "message": "Critical temperature detected"
+    }
+  ],
+  "tooltip": {
+    "enabled": true,
+    "format": "HH:mm:ss",
+    "showValues": true,
+    "showUnits": true,
+    "mode": "all",
+    "shared": true,
+    "hoverinfo": "x+y+text",
+    "hovertemplate": "<b>%{fullData.name}</b><br>Time: %{x}<br>Value: %{y:,.1f} °C<br><extra></extra>"
+  },
+  "legend": {
+    "enabled": true,
+    "position": "top",
+    "orientation": "horizontal"
+  },
+  "zoom": {
+    "enabled": true,
+    "type": "x"
+  },
+  "pan": {
+    "enabled": true,
+    "type": "x"
+  }
+}

@@ -5,13 +5,16 @@ import ProjectPictureCard from '../components/ProjectPictureCard.jsx';
 import KpiMiniStack from '../components/KpiMiniStack.jsx';
 import NotificationsCard from '../components/NotificationsCard.jsx';
 import RightMetricsPanel from '../components/RightMetricsPanel.jsx';
-import PowerMixChart from '../components/PowerMixChart.jsx';
 import EnergyMixChart from '../components/EnergyMixChart.jsx';
-import { useDateRange } from '../hooks/redux';
+import DynamicTimeseriesChart from '../components/DynamicTimeseriesChart.jsx';
+import { useDateRange, useData } from '../hooks/redux';
 
 const Overview = () => {
   // Get global date range context (not used for Power Mix chart anymore)
   useDateRange();
+  
+  // Get power mix data for the timeseries chart
+  // const { powerMix } = useData(); // Not needed for dynamic chart
 
   // Dummy data for Energy Mix Chart
   const energyMixData = [
@@ -60,16 +63,44 @@ const Overview = () => {
 
       {/* Bottom Row - Charts Section */}
       <div className="grid grid-cols-12 gap-2">
-        {/* Left: Power Mix Chart (8 cols) - ALL DATA POINTS */}
-        <PowerMixChart 
-          className="col-span-8 rounded-2xl bg-white shadow-lg border border-gray-200 p-2 sm:p-3" 
-        />
+        {/* Left: Dynamic Energy Monitoring Chart (8 cols) */}
+        <div className="col-span-8 rounded-2xl bg-white shadow-lg border border-gray-200 p-2 sm:p-3">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Energy Monitoring</h3>
+          <DynamicTimeseriesChart 
+            configPath="energy-monitoring-comprehensive"
+            dataPath="energy-monitoring-data"
+            height={350}
+          />
+        </div>
         
         {/* Right: Energy Mix Chart (4 cols) */}
         <EnergyMixChart 
           className="col-span-4 rounded-2xl bg-white shadow-lg border border-gray-200 p-2 sm:p-3" 
           data={energyMixData} 
         />
+      </div>
+
+      {/* Second Row - Additional Charts */}
+      <div className="grid grid-cols-12 gap-2 mt-4">
+        {/* Temperature Monitoring Chart (6 cols) */}
+        <div className="col-span-6 rounded-2xl bg-white shadow-lg border border-gray-200 p-2 sm:p-3">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Temperature Monitoring</h3>
+          <DynamicTimeseriesChart 
+            configPath="temperature-monitoring"
+            dataPath="temperature-monitoring-data"
+            height={300}
+          />
+        </div>
+        
+        {/* System Metrics Chart (6 cols) */}
+        <div className="col-span-6 rounded-2xl bg-white shadow-lg border border-gray-200 p-2 sm:p-3">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">System Metrics</h3>
+          <DynamicTimeseriesChart 
+            configPath="system-metrics"
+            dataPath="system-metrics-data"
+            height={300}
+          />
+        </div>
       </div>
     </div>
   );
