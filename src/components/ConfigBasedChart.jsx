@@ -7,23 +7,27 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Plot from 'react-plotly.js';
 import { transformConfigToPlotly } from '../modules/timeseries/utils/plotlyTransformer';
 import { validateConfig } from '../modules/timeseries/utils/configValidator';
+import { useDateRange } from '../hooks/redux';
 
 const ConfigBasedChart = ({ 
   configName,           // Config name (e.g., 'energy-monitoring')
   className = "",       // CSS classes
   height = 400,         // Chart height
   refreshInterval = 0,  // Auto refresh interval in ms (0 = disabled)
-  controllerId = "CTRL-1A64BCC039E8D677872A6A73E31ADFE1098432BE49B3AC4159FD21A909EF61EA" // Controller ID
+  controllerId = null   // Controller ID (will use from date range if not provided)
 }) => {
   const [config, setConfig] = useState(null);
   const [data, setData] = useState([]);
   const [chartComponent, setChartComponent] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [tooltip, setTooltip] = useState(null);
   const [lastRefresh, setLastRefresh] = useState(null);
+  const [tooltip, setTooltip] = useState(null);
   const chartRef = useRef(null);
   const refreshIntervalRef = useRef(null);
+
+  // Get date range from Redux
+  const { getControllerId, getApiTimeRange, refreshTrigger } = useDateRange();
 
   // Backend API base URL
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api/v1';
@@ -62,14 +66,31 @@ const ConfigBasedChart = ({
     if (!config) return;
 
     try {
+      // Get controller ID and time range from Redux
+      const actualControllerId = controllerId || getControllerId();
+      const timeRange = getApiTimeRange();
+      
       // Use the query from config
       let query = config.query;
-      let parameters = { controllerId };
+      let parameters = { 
+        controllerId: actualControllerId,
+        start: timeRange.start,
+        stop: timeRange.stop,
+        window: timeRange.window
+      };
       
       // Merge config parameters with provided parameters
       if (config.parameters) {
         parameters = { ...config.parameters, ...parameters };
       }
+
+      console.log('🔌 Fetching chart data with date range:', {
+        configName,
+        controllerId: actualControllerId,
+        start: timeRange.start,
+        stop: timeRange.stop,
+        // window: timeRange.window
+      });
 
       const response = await fetch(`${API_BASE_URL}/api/v1/flux/execute`, {
         method: 'POST',
@@ -104,7 +125,7 @@ const ConfigBasedChart = ({
       setError(`Data Error: ${err.message}`);
       console.error('Data loading error:', err);
     }
-  }, [config, controllerId, API_BASE_URL]);
+  }, [config, controllerId, getControllerId, getApiTimeRange, API_BASE_URL]);
 
   // Transform flux data to chart format
   const transformFluxDataToChartFormat = (fluxData) => {
@@ -126,13 +147,38 @@ const ConfigBasedChart = ({
           };
         }
         
-        // Map field names to chart format
+        // Map field names to chart format - preserve zero values
         dataByTime[timestamp][series.field] = point.value;
       });
     });
 
     // Convert to array and sort by timestamp
-    return Object.values(dataByTime).sort((a, b) => a.timestamp - b.timestamp);
+    const result = Object.values(dataByTime).sort((a, b) => a.timestamp - b.timestamp);
+    
+    // Debug: Log date range for tick formatting
+    if (result.length > 0) {
+      const firstTime = result[0].time;
+      const lastTime = result[result.length - 1].time;
+      const diffDays = (new Date(lastTime) - new Date(firstTime)) / (1000 * 60 * 60 * 24);
+      
+      console.log('Data date range for tick formatting:', {
+        firstTime,
+        lastTime,
+        diffDays: diffDays.toFixed(2),
+        totalPoints: result.length
+      });
+    }
+    
+    // Debug: Log zero values
+    const zeroValues = result.filter(item => 
+      Object.values(item).some(val => val === 0)
+    );
+    console.log('Zero values found:', zeroValues.length, 'out of', result.length);
+    if (zeroValues.length > 0) {
+      console.log('Sample zero value:', zeroValues[0]);
+    }
+    
+    return result;
   };
 
   // Create chart component based on config type
@@ -161,6 +207,38 @@ const ConfigBasedChart = ({
     }
   }, [config, data]);
 
+  // Custom tooltip event handlers
+  const handlePlotlyHover = useCallback((event) => {
+    console.log('Hover event triggered:', event);
+    if (!event.points || event.points.length === 0) return;
+    
+    const point = event.points[0];
+    const rect = chartRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const tooltipData = {
+      traceName: point.data.name || point.fullData.name,
+      x: point.x,
+      y: point.y,
+      xLabel: new Date(point.x).toLocaleString(),
+      yLabel: point.y.toFixed(2),
+      color: point.data.line?.color || point.data.marker?.color || '#1f77b4'
+    };
+
+    console.log('Setting tooltip:', tooltipData);
+    setTooltip({
+      ...tooltipData,
+      position: {
+        x: event.event.clientX - rect.left,
+        y: event.event.clientY - rect.top
+      }
+    });
+  }, []);
+
+  const handlePlotlyUnhover = useCallback(() => {
+    setTooltip(null);
+  }, []);
+
   // Create timeseries chart
   const createTimeseriesChart = useCallback(() => {
     const plotlyConfig = transformConfigToPlotly(config, data);
@@ -174,11 +252,22 @@ const ConfigBasedChart = ({
           responsive: true,
           displayModeBar: true,
           displaylogo: false,
-          modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
-          staticPlot: false
+          modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+          staticPlot: false,
+          doubleClick: 'reset+autosize',
+          showTips: false,
+          scrollZoom: true,
+          editable: false,
+          toImageButtonOptions: {
+            format: 'png',
+            filename: 'chart',
+            height: 500,
+            width: 700,
+            scale: 1
+          }
         }}
-        onHover={handleHover}
-        onUnhover={handleUnhover}
+        onHover={handlePlotlyHover}
+        onUnhover={handlePlotlyUnhover}
       />
     );
   }, [config, data]);
@@ -217,53 +306,18 @@ const ConfigBasedChart = ({
     );
   }, [config]);
 
-  // Handle hover events for custom tooltip
-  const handleHover = useCallback((event) => {
-    if (!event.points || event.points.length === 0) {
-      return;
-    }
-
-    const point = event.points[0];
-    const rect = chartRef.current?.getBoundingClientRect();
-    if (!rect) {
-      return;
-    }
-
-    const tooltipData = {
-      x: point.x,
-      y: point.y,
-      text: point.text || `${point.data.name}: ${point.y}`,
-      color: point.data.line?.color || point.data.marker?.color || '#1f77b4',
-      name: point.data.name,
-      xLabel: new Date(point.x).toLocaleString(),
-      yLabel: point.y.toLocaleString()
-    };
-
-    setTooltip({
-      ...tooltipData,
-      position: {
-        x: event.event.clientX - rect.left,
-        y: event.event.clientY - rect.top
-      }
-    });
-  }, []);
-
-  // Handle unhover events
-  const handleUnhover = useCallback(() => {
-    setTooltip(null);
-  }, []);
 
   // Load config on mount
   useEffect(() => {
     loadConfig();
   }, [loadConfig]);
 
-  // Load data when config is ready
+  // Load data when config is ready or date range changes
   useEffect(() => {
     if (config) {
       loadData();
     }
-  }, [config, loadData]);
+  }, [config, loadData, refreshTrigger]);
 
   // Create chart component when config and data are ready
   useEffect(() => {
@@ -341,7 +395,36 @@ const ConfigBasedChart = ({
   }
 
   return (
-    <div className={`w-full relative ${className}`} style={{ height }}>
+    <div className={`w-full relative ${className}`} style={{ height, overflow: 'visible' }}>
+      <style jsx global>{`
+        .custom-plotly-tooltip {
+          position: absolute;
+          background: rgba(255, 255, 255, 0.95);
+          border: 1px solid #ccc;
+          padding: 8px;
+          border-radius: 4px;
+          font-size: 13px;
+          font-family: Arial, sans-serif;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+          pointer-events: none;
+          z-index: 1000;
+          opacity: 0;
+          transition: opacity 0.2s ease-in-out;
+        }
+        .custom-plotly-tooltip.show {
+          opacity: 1;
+        }
+        .custom-plotly-tooltip .tooltip-header {
+          font-weight: bold;
+          margin-bottom: 4px;
+          color: #333;
+        }
+        .custom-plotly-tooltip .tooltip-content {
+          font-size: 12px;
+          color: #666;
+          line-height: 1.4;
+        }
+      `}</style>
       {/* Chart Header with Refresh Info */}
       <div className="flex justify-between items-center mb-2">
         <div className="text-sm text-gray-500">
@@ -356,31 +439,25 @@ const ConfigBasedChart = ({
         </button>
       </div>
 
-      <div ref={chartRef} className="w-full h-full">
+      <div ref={chartRef} className="w-full h-full" style={{ cursor: 'grab' }}>
         {chartComponent}
       </div>
       
       {/* Custom Tooltip */}
       {tooltip && (
-        <div
-          className="absolute pointer-events-none z-50 bg-white border-2 border-blue-500 rounded-lg shadow-xl p-4 max-w-xs"
+        <div 
+          className="custom-plotly-tooltip show"
           style={{
-            left: Math.min(tooltip.position.x + 10, window.innerWidth - 200),
-            top: Math.max(tooltip.position.y - 10, 10),
-            transform: 'translateY(-50%)',
-            zIndex: 9999
+            left: `${tooltip.position.x + 10}px`,
+            top: `${tooltip.position.y - 10}px`,
+            borderLeftColor: tooltip.color,
+            borderLeftWidth: '3px'
           }}
         >
-          <div className="flex items-center mb-2">
-            <div 
-              className="w-4 h-4 rounded-full mr-2 border-2 border-white shadow-sm"
-              style={{ backgroundColor: tooltip.color }}
-            ></div>
-            <span className="font-bold text-gray-900 text-lg">{tooltip.name}</span>
-          </div>
-          <div className="text-sm text-gray-700 space-y-1">
-            <div><strong>Time:</strong> {tooltip.xLabel}</div>
-            <div><strong>Value:</strong> {tooltip.yLabel}</div>
+          <div className="tooltip-header">{tooltip.traceName}</div>
+          <div className="tooltip-content">
+            Time: {tooltip.xLabel}<br/>
+            Value: {tooltip.yLabel} W
           </div>
         </div>
       )}

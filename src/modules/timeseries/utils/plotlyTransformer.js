@@ -5,6 +5,48 @@
 
 import moment from 'moment';
 
+/**
+ * Get appropriate tick format based on date range
+ * @param {string|Date} startDate - Start date in ISO format or Date object
+ * @param {string|Date} endDate - End date in ISO format or Date object
+ * @returns {string} Plotly tick format string
+ */
+export const getTickFormatByRange = (startDate, endDate) => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const diffMs = end - start;
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  
+  if (diffDays < 1) {
+    return '%H:%M:%S';  // Less than 1 day: show time only
+  } else if (diffDays <= 7) {
+    return '%b %d %H:%M';  // 1-7 days: show date and hour
+  } else {
+    return '%Y-%m-%d';  // More than 7 days: show only date
+  }
+};
+
+/**
+ * Get appropriate tick interval based on date range
+ * @param {string|Date} startDate - Start date in ISO format or Date object
+ * @param {string|Date} endDate - End date in ISO format or Date object
+ * @returns {number} Tick interval in milliseconds
+ */
+export const getTickInterval = (startDate, endDate) => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const diffMs = end - start;
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  
+  if (diffDays < 1) {
+    return 15 * 60 * 1000;  // 15 minutes for less than 1 day
+  } else if (diffDays <= 7) {
+    return 6 * 60 * 60 * 1000;  // 6 hours for 1-7 days
+  } else {
+    return 24 * 60 * 60 * 1000;  // 1 day for more than 7 days
+  }
+};
+
 export const transformConfigToPlotly = (config, data) => {
   const traces = [];
   const layout = createLayout(config, data);
@@ -70,38 +112,137 @@ const createLayout = (config, data) => {
     plot_bgcolor: config.panel?.backgroundColor || '#ffffff',
     paper_bgcolor: config.panel?.backgroundColor || '#ffffff',
     font: { color: '#333333' },
-    hovermode: config.tooltip?.mode || 'closest',
+    hovermode: config.tooltip?.hoverMode || 'closest',
     hoverdistance: config.tooltip?.hoverProximity || 20,
-    spikedistance: 1000,
-    spikecolor: '#000000',
-    spikethickness: 1,
-    spikemode: 'across',
-    showspikes: true
+    spikedistance: config.tooltip?.spikeDistance || 1000,
+    spikecolor: config.tooltip?.spikeColor || '#000000',
+    spikethickness: config.tooltip?.spikeThickness || 1,
+    spikemode: config.tooltip?.spikeMode || 'across',
+    showspikes: config.tooltip?.showSpikes || false,
+    hoverlabel: {
+      bgcolor: config.tooltip?.backgroundColor || 'rgba(255, 255, 255, 0.95)',
+      bordercolor: config.tooltip?.borderColor || '#ccc',
+      font: { 
+        color: config.tooltip?.fontColor || '#333',
+        size: config.tooltip?.fontSize || 13,
+        family: config.tooltip?.fontFamily || 'Arial, sans-serif'
+      },
+      namelength: config.tooltip?.nameLength || 0,
+      align: config.tooltip?.align || 'left'
+    },
+    dragmode: config.chart?.dragMode || 'pan',
+    selectdirection: config.chart?.selectDirection || 'diagonal'
   };
 
   // Configure x-axis with dynamic time formatting
   const isToday = data && data.length > 0 && isDataFromToday(data);
   console.log('Data date check:', { isToday, dataLength: data?.length, firstDataPoint: data?.[0] });
-  const timeFormat = isToday ? '%H:%M' : '%Y-%m-%d %H:%M';
-  console.log('Using time format:', timeFormat);
   
+  // Dynamic time format based on date range
+  let timeFormat;
+  let tickInterval;
+  
+  if (config.axes?.x?.tickFormat) {
+    // Use explicit format from config
+    timeFormat = config.axes?.x?.tickFormat;
+    tickInterval = config.axes?.x?.dtick;
+  } else if (config.axes?.x?.format) {
+    // Convert common format patterns to Plotly format
+    timeFormat = config.axes?.x?.format
+      .replace(/HH/g, '%H')
+      .replace(/mm/g, '%M')
+      .replace(/ss/g, '%S')
+      .replace(/dd/g, '%d')
+      .replace(/MM/g, '%m')
+      .replace(/yyyy/g, '%Y')
+      .replace(/yy/g, '%y');
+    tickInterval = config.axes?.x?.dtick;
+  } else {
+    // Use the complete date range from the data, not just first/last points
+    if (data && data.length > 0) {
+      // Get all timestamps and find the actual min/max
+      const allTimestamps = data.map(item => new Date(item.timestamp || item.time).getTime());
+      const minTimestamp = Math.min(...allTimestamps);
+      const maxTimestamp = Math.max(...allTimestamps);
+      
+      const firstTime = new Date(minTimestamp).toISOString();
+      const lastTime = new Date(maxTimestamp).toISOString();
+      
+      // Use helper functions for consistent formatting
+      timeFormat = getTickFormatByRange(firstTime, lastTime);
+      tickInterval = getTickInterval(firstTime, lastTime);
+      
+      // Calculate actual time difference for debugging
+      const actualDiffMs = maxTimestamp - minTimestamp;
+      const actualDiffDays = actualDiffMs / (1000 * 60 * 60 * 24);
+      
+      console.log('Dynamic time format calculation (using full range):', {
+        firstTime,
+        lastTime,
+        actualDiffDays: actualDiffDays.toFixed(2),
+        calculatedFormat: timeFormat,
+        calculatedInterval: tickInterval,
+        dataLength: data.length,
+        minTimestamp: new Date(minTimestamp).toISOString(),
+        maxTimestamp: new Date(maxTimestamp).toISOString()
+      });
+    } else {
+      // Fallback for no data
+      timeFormat = isToday ? '%H:%M:%S' : '%Y-%m-%d';
+      tickInterval = isToday ? 15 * 60 * 1000 : 24 * 60 * 60 * 1000;
+    }
+  }
+  console.log('Using time format:', timeFormat, 'with interval:', tickInterval);
+  
+  // Set x-axis range to show only the selected time range
+  let xAxisRange = undefined;
+  if (data && data.length > 0) {
+    // Use the same min/max approach as tick formatting
+    const allTimestamps = data.map(item => new Date(item.timestamp || item.time).getTime());
+    const minTimestamp = Math.min(...allTimestamps);
+    const maxTimestamp = Math.max(...allTimestamps);
+    
+    const firstTime = new Date(minTimestamp);
+    const lastTime = new Date(maxTimestamp);
+    xAxisRange = [firstTime, lastTime];
+    console.log('Setting x-axis range (using full range):', { 
+      firstTime: firstTime.toISOString(), 
+      lastTime: lastTime.toISOString() 
+    });
+  }
+
   layout.xaxis = {
-    type: 'date',
+    type: 'date', // Force date type for proper formatting
     title: config.axes?.x?.title || 'Time',
-    showgrid: config.axes?.x?.gridLines !== false,
-    gridcolor: '#e0e0e0',
-    zeroline: false,
+    showgrid: config.axes?.x?.showGrid !== false,
+    gridcolor: config.axes?.x?.gridColor || '#e0e0e0',
+    gridwidth: config.axes?.x?.gridWidth || 1,
+    zeroline: config.axes?.x?.showZeroLine || false,
+    zerolinecolor: config.axes?.x?.zeroLineColor || '#ccc',
+    zerolinewidth: config.axes?.x?.zeroLineWidth || 1,
     showline: config.axes?.x?.showBorder !== false,
     linecolor: config.axes?.x?.color === 'text' ? '#333333' : (config.axes?.x?.color || '#d0d0d0'),
+    linewidth: config.axes?.x?.lineWidth || 1,
     tickformat: timeFormat,
-    dtick: isToday ? 3600000 : 86400000, // 1 hour for today, 1 day for other dates
-    tick0: isToday ? undefined : data?.[0]?.timestamp || data?.[0]?.time,
-    tickmode: 'auto',
-    nticks: 10,
-    showticklabels: true,
-    tickangle: 0,
-    tickfont: { size: 12 },
-    titlefont: { size: 14 }
+    hoverformat: config.axes?.x?.hoverFormat || '%Y-%m-%d %H:%M',
+    range: xAxisRange, // Set range to show only selected time period
+    dtick: tickInterval,
+    tick0: config.axes?.x?.tick0 || (isToday ? undefined : data?.[0]?.timestamp || data?.[0]?.time),
+    tickmode: config.axes?.x?.tickMode || 'auto',
+    nticks: config.axes?.x?.nTicks || 10,
+    showticklabels: config.axes?.x?.showTickLabels !== false,
+    tickangle: config.axes?.x?.tickAngle || 0,
+    tickfont: { 
+      size: config.axes?.x?.tickFontSize || 12,
+      color: config.axes?.x?.tickFontColor || '#333'
+    },
+    titlefont: { 
+      size: config.axes?.x?.titleFontSize || 14,
+      color: config.axes?.x?.titleFontColor || '#333'
+    },
+    rangeslider: { visible: config.axes?.x?.rangeSlider || false },
+    rangeselector: { visible: config.axes?.x?.rangeSelector || false },
+    fixedrange: config.axes?.x?.fixedRange || false
   };
 
   // Configure y-axes
@@ -110,20 +251,30 @@ const createLayout = (config, data) => {
       const axisKey = index === 0 ? 'yaxis' : `yaxis${index + 1}`;
       layout[axisKey] = {
         title: yAxis.title || `Y-Axis ${index + 1}`,
-        showgrid: yAxis.gridLines !== false,
-        gridcolor: '#e0e0e0',
-        zeroline: yAxis.centeredZero || false,
+        showgrid: yAxis.showGrid !== false,
+        gridcolor: yAxis.gridColor || '#e0e0e0',
+        gridwidth: yAxis.gridWidth || 1,
+        zeroline: yAxis.zeroline || yAxis.centeredZero || false,
+        zerolinecolor: yAxis.zerolinecolor || '#ccc',
+        zerolinewidth: yAxis.zerolinewidth || 1,
         showline: yAxis.showBorder !== false,
         linecolor: yAxis.color === 'text' ? '#333333' : (yAxis.color || '#d0d0d0'),
+        linewidth: yAxis.lineWidth || 1,
         side: yAxis.side || 'left',
         type: yAxis.scale === 'log' ? 'log' : 'linear',
-        tickmode: 'auto',
-        nticks: 10,
-        showticklabels: true,
-        tickangle: 0,
-        tickfont: { size: 12 },
-        titlefont: { size: 14 },
-        fixedrange: false
+        tickmode: yAxis.tickMode || 'auto',
+        nticks: yAxis.nTicks || 10,
+        showticklabels: yAxis.showTickLabels !== false,
+        tickangle: yAxis.tickAngle || 0,
+        tickfont: { 
+          size: yAxis.tickFontSize || 12,
+          color: yAxis.tickFontColor || '#333'
+        },
+        titlefont: { 
+          size: yAxis.titleFontSize || 14,
+          color: yAxis.titleFontColor || '#333'
+        },
+        fixedrange: yAxis.fixedRange || false
       };
 
       if (yAxis.min !== undefined || yAxis.softMin !== undefined) {
@@ -155,25 +306,38 @@ const createTrace = (series, data, config) => {
 
   const xData = data.map(item => {
     const timestamp = item.timestamp || item.time;
-    // Convert to milliseconds if it's not already
-    return typeof timestamp === 'number' ? timestamp : new Date(timestamp).getTime();
+    // Keep as Date objects for proper formatting
+    if (typeof timestamp === 'number') {
+      return new Date(timestamp);
+    } else if (typeof timestamp === 'string') {
+      return new Date(timestamp);
+    } else {
+      return timestamp;
+    }
   });
-  const yData = data.map(item => item[series.dataField] || null);
+  const yData = data.map(item => {
+    const value = item[series.dataField];
+    return value !== undefined && value !== null ? value : null;
+  });
 
   console.log(`Creating trace for ${series.name}:`, {
     dataField: series.dataField,
     xDataLength: xData.length,
     yDataLength: yData.length,
     firstX: xData[0],
+    firstXType: typeof xData[0],
     firstY: yData[0],
     lastX: xData[xData.length - 1],
-    lastY: yData[yData.length - 1]
+    lastY: yData[yData.length - 1],
+    zeroValues: yData.filter(val => val === 0).length,
+    nullValues: yData.filter(val => val === null).length
   });
 
   const trace = {
     x: xData,
     y: yData,
-    type: series.type || 'line',
+    type: series.type || 'scatter',
+    mode: series.mode || 'lines+markers',
     name: series.displayName || series.name || 'Series',
     yaxis: series.yAxis !== undefined ? `y${series.yAxis + 1}` : 'y',
     line: {
@@ -183,21 +347,29 @@ const createTrace = (series, data, config) => {
       shape: getLineInterpolation(series.lineInterpolation)
     },
     marker: {
-      size: series.markerSize || 4,
+      size: series.markerSize || 6,
       color: series.color || '#1f77b4',
       symbol: getMarkerSymbol(series.markerStyle),
       line: {
-        width: series.markerLineWidth || 1,
+        width: series.markerLineWidth || 2,
         color: series.markerLineColor || series.color || '#1f77b4'
       },
-      opacity: series.fillOpacity || 1
+      opacity: series.fillOpacity || 1,
+      showscale: false
     },
-    hovertemplate: config.tooltip?.hovertemplate || 
-      `<b>%{fullData.name}</b><br>` +
-      `Time: %{x}<br>` +
-      `Value: %{y:,.0f}<br>` +
-      `<extra></extra>`,
-    hoverinfo: config.tooltip?.hoverinfo || 'x+y+text',
+    hovertemplate: series.hovertemplate || '',
+    hoverinfo: series.hoverinfo || 'none',
+    hoverlabel: {
+      bgcolor: series.hoverBackgroundColor || config.tooltip?.backgroundColor || 'rgba(255, 255, 255, 0.95)',
+      bordercolor: series.hoverBorderColor || config.tooltip?.borderColor || '#ccc',
+      font: { 
+        color: series.hoverFontColor || config.tooltip?.fontColor || '#333',
+        size: series.hoverFontSize || config.tooltip?.fontSize || 13,
+        family: series.hoverFontFamily || config.tooltip?.fontFamily || 'Arial, sans-serif'
+      },
+      namelength: series.hoverNameLength || config.tooltip?.nameLength || 0,
+      align: series.hoverAlign || config.tooltip?.align || 'left'
+    },
     hoveron: 'points',
     hoverdistance: config.tooltip?.hoverProximity || 20,
     showlegend: series.showLegend !== false,

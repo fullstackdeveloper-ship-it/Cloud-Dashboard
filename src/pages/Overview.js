@@ -55,26 +55,26 @@ const Overview = () => {
           <div className="flex-1 overflow-hidden">
             <FlowKPI />
           </div>
+
         </div>
         
         {/* Right Metrics Panel - Right 50% */}
         <RightMetricsPanel className="col-start-7 col-span-6 h-[400px]" />
       </section>
 
-      {/* Bottom Row - Charts Section */}
-      <div className="grid grid-cols-12 gap-2">
-        {/* Left: Auto Chart Renderer (8 cols) */}
-        <div className="col-span-8 rounded-2xl bg-white shadow-lg border border-gray-200 p-2 sm:p-3">
-          <AutoChartRenderer 
-            chartHeight={350}
-            refreshInterval={0}
-          />
-        </div>
-        
-        {/* Right: Energy Mix Chart (4 cols) */}
+      {/* Energy Mix Chart Section */}
+      <div className="mb-4">
         <EnergyMixChart 
-          className="col-span-4 rounded-2xl bg-white shadow-lg border border-gray-200 p-2 sm:p-3" 
+          className="rounded-2xl bg-white shadow-lg border border-gray-200 p-2 sm:p-3" 
           data={energyMixData} 
+        />
+      </div>
+
+      {/* Dynamic Charts Section - Completely separate */}
+      <div className="mt-8 mb-8">
+        <AutoChartRenderer 
+          chartHeight={350}
+          refreshInterval={0}
         />
       </div>
 
@@ -83,3 +83,4 @@ const Overview = () => {
 };
 
 export default Overview;
+

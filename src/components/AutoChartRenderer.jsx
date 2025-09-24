@@ -95,19 +95,12 @@ const AutoChartRenderer = ({
   // }
 
   return (
-    <div className={`w-full ${className}`}>
-      {/* Header with refresh button */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-900">Dynamic Charts</h2>
-
-      </div>
-
-      {/* Render charts in a single column for 100% width */}
-      <div className="grid grid-cols-1 gap-4">
-        {configs.map((config, index) => (
+    <div className="w-full">
+      {/* Render each chart in its own separate div */}
+      {configs.map((config, index) => (
+        <div key={config.name || index} className="mb-8">
           <div 
-            key={config.name || index}
-            className="rounded-2xl bg-white shadow-lg border border-gray-200 p-4"
+            className="w-full rounded-2xl bg-white shadow-lg border border-gray-200 p-2 sm:p-3"
           >
             {/* Chart Header */}
             <div className="mb-4">
@@ -119,24 +112,21 @@ const AutoChartRenderer = ({
                   {config.description}
                 </p>
               )}
-              <div className="flex items-center gap-2 mt-2">
-              
-              </div>
             </div>
 
             {/* Chart Component */}
-            <div style={{ height: chartHeight }}>
+            <div style={{ height: chartHeight }} className="relative overflow-hidden">
               <ConfigBasedChart
                 configName={config.name}
                 height={chartHeight}
                 refreshInterval={refreshInterval}
                 controllerId={controllerId}
-                className="w-full"
+                className="w-full h-full"
               />
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
 };

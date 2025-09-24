@@ -82,28 +82,25 @@ const DynamicTimeseriesChart = ({
     }
   }, [config, data]);
 
-  // Handle hover events for custom tooltip
-  const handleHover = useCallback((event) => {
-    if (!event.points || event.points.length === 0) {
-      return;
-    }
-
+  // Custom tooltip event handlers
+  const handlePlotlyHover = useCallback((event) => {
+    console.log('Hover event triggered:', event);
+    if (!event.points || event.points.length === 0) return;
+    
     const point = event.points[0];
     const rect = chartRef.current?.getBoundingClientRect();
-    if (!rect) {
-      return;
-    }
+    if (!rect) return;
 
     const tooltipData = {
+      traceName: point.data.name || point.fullData.name,
       x: point.x,
       y: point.y,
-      text: point.text || `${point.data.name}: ${point.y}`,
-      color: point.data.line?.color || point.data.marker?.color || '#1f77b4',
-      name: point.data.name,
       xLabel: new Date(point.x).toLocaleString(),
-      yLabel: point.y.toLocaleString()
+      yLabel: point.y.toFixed(2),
+      color: point.data.line?.color || point.data.marker?.color || '#1f77b4'
     };
 
+    console.log('Setting tooltip:', tooltipData);
     setTooltip({
       ...tooltipData,
       position: {
@@ -113,8 +110,7 @@ const DynamicTimeseriesChart = ({
     });
   }, []);
 
-  // Handle unhover events
-  const handleUnhover = useCallback(() => {
+  const handlePlotlyUnhover = useCallback(() => {
     setTooltip(null);
   }, []);
 
@@ -172,8 +168,37 @@ const DynamicTimeseriesChart = ({
   }
 
   return (
-    <div className={`w-full relative ${className}`} style={{ height }}>
-      <div ref={chartRef} className="w-full h-full">
+    <div className={`w-full relative ${className}`} style={{ height, overflow: 'visible' }}>
+      <style jsx global>{`
+        .custom-plotly-tooltip {
+          position: absolute;
+          background: rgba(255, 255, 255, 0.95);
+          border: 1px solid #ccc;
+          padding: 8px;
+          border-radius: 4px;
+          font-size: 13px;
+          font-family: Arial, sans-serif;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+          pointer-events: none;
+          z-index: 1000;
+          opacity: 0;
+          transition: opacity 0.2s ease-in-out;
+        }
+        .custom-plotly-tooltip.show {
+          opacity: 1;
+        }
+        .custom-plotly-tooltip .tooltip-header {
+          font-weight: bold;
+          margin-bottom: 4px;
+          color: #333;
+        }
+        .custom-plotly-tooltip .tooltip-content {
+          font-size: 12px;
+          color: #666;
+          line-height: 1.4;
+        }
+      `}</style>
+      <div ref={chartRef} className="w-full h-full" style={{ cursor: 'grab' }}>
         <Plot
           data={plotlyData}
           layout={plotlyLayout}
@@ -182,39 +207,50 @@ const DynamicTimeseriesChart = ({
             responsive: true,
             displayModeBar: true,
             displaylogo: false,
-            modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
-            staticPlot: false
+            modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+            staticPlot: false,
+            doubleClick: 'reset+autosize',
+            showTips: false,
+            scrollZoom: true,
+            editable: false,
+            toImageButtonOptions: {
+              format: 'png',
+              filename: 'chart',
+              height: 500,
+              width: 700,
+              scale: 1
+            }
           }}
-          onHover={handleHover}
-          onUnhover={handleUnhover}
+          onHover={handlePlotlyHover}
+          onUnhover={handlePlotlyUnhover}
         />
       </div>
       
       {/* Custom Tooltip */}
       {tooltip && (
-        <div
-          className="absolute pointer-events-none z-50 bg-white border-2 border-blue-500 rounded-lg shadow-xl p-4 max-w-xs"
+        <div 
+          className="custom-plotly-tooltip show"
           style={{
-            left: Math.min(tooltip.position.x + 10, window.innerWidth - 200),
-            top: Math.max(tooltip.position.y - 10, 10),
-            transform: 'translateY(-50%)',
-            zIndex: 9999
+            left: `${tooltip.position.x + 10}px`,
+            top: `${tooltip.position.y - 10}px`,
+            borderLeftColor: tooltip.color,
+            borderLeftWidth: '3px'
           }}
         >
-          <div className="flex items-center mb-2">
-            <div 
-              className="w-4 h-4 rounded-full mr-2 border-2 border-white shadow-sm"
-              style={{ backgroundColor: tooltip.color }}
-            ></div>
-            <span className="font-bold text-gray-900 text-lg">{tooltip.name}</span>
-          </div>
-          <div className="text-sm text-gray-700 space-y-1">
-            <div><strong>Time:</strong> {tooltip.xLabel}</div>
-            <div><strong>Value:</strong> {tooltip.yLabel}</div>
+          <div className="tooltip-header">{tooltip.traceName}</div>
+          <div className="tooltip-content">
+            Time: {tooltip.xLabel}<br/>
+            Value: {tooltip.yLabel} W
           </div>
         </div>
       )}
       
+      {/* Debug: Show tooltip state */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(0,0,0,0.8)', color: 'white', padding: '5px', fontSize: '12px', zIndex: 9999 }}>
+          Tooltip: {tooltip ? 'Active' : 'Inactive'}
+        </div>
+      )}
     </div>
   );
 };
