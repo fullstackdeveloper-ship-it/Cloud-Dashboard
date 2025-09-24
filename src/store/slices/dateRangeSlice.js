@@ -8,8 +8,7 @@ const getDefaultDateRange = () => {
   startOfDay.setHours(0, 0, 0, 0);
   
   const endOfDay = new Date(now);
-  endOfDay.setDate(endOfDay.getDate() + 1);
-  endOfDay.setHours(0, 0, 0, 0);
+  endOfDay.setHours(23, 59, 59, 999); // Set to 23:59:59.999 of current day
   
   const formatDateTime = (date) => {
     const year = date.getFullYear();
@@ -17,7 +16,8 @@ const getDefaultDateRange = () => {
     const day = String(date.getDate()).padStart(2, '0');
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
   };
   
   return {

@@ -11,6 +11,7 @@ import { validateConfig } from '../modules/timeseries/utils/configValidator';
 const DynamicTimeseriesChart = ({ 
   configPath,           // Path to config file (e.g., 'energy-monitoring')
   dataPath,            // Path to data file (e.g., 'energy-monitoring-data')
+  dateRange = null,     // Date range object with start/stop
   className = "",      // CSS classes
   height = 400         // Chart height
 }) => {
@@ -73,7 +74,7 @@ const DynamicTimeseriesChart = ({
     if (!config || !data || data.length === 0) return;
 
     try {
-      const plotlyConfig = transformConfigToPlotly(config, data);
+      const plotlyConfig = transformConfigToPlotly(config, data, dateRange);
       setPlotlyData(plotlyConfig.data);
       setPlotlyLayout(plotlyConfig.layout);
     } catch (err) {
@@ -113,6 +114,77 @@ const DynamicTimeseriesChart = ({
   const handlePlotlyUnhover = useCallback(() => {
     setTooltip(null);
   }, []);
+
+  // Selection event handler for drag selection
+  const handlePlotlySelection = useCallback(async (event) => {
+    console.log('Selection event triggered:', event);
+    
+    if (!event.selection || !event.selection.xrange) {
+      console.log('No selection range found');
+      return;
+    }
+
+    const { xrange } = event.selection;
+    const startTime = new Date(xrange[0]);
+    const endTime = new Date(xrange[1]);
+    
+    console.log('Selected time range:', {
+      start: startTime.toISOString(),
+      end: endTime.toISOString(),
+      duration: `${(endTime - startTime) / (1000 * 60 * 60)} hours`
+    });
+
+    try {
+      // Make API call with selected range
+      const apiTimeRange = getApiTimeRange();
+      const controllerId = getControllerId();
+      
+      const requestBody = {
+        query: config.query,
+        parameters: {
+          ...config.parameters,
+          start: startTime.toISOString(),
+          stop: endTime.toISOString(),
+          controllerId: controllerId,
+          window: apiTimeRange.window || '1h'
+        }
+      };
+
+      console.log('Making API call with selected range:', requestBody);
+      
+      const response = await fetch(`${API_BASE_URL}/api/v1/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'API call failed');
+      }
+
+      console.log('API response for selected range:', result.data);
+      
+      // Update the chart with new data
+      if (result.data && result.data.length > 0) {
+        setData(result.data);
+        console.log('Chart updated with selected range data');
+      } else {
+        console.log('No data returned for selected range');
+      }
+
+    } catch (error) {
+      console.error('Error fetching data for selected range:', error);
+      setError(`Selection Error: ${error.message}`);
+    }
+  }, [config, getControllerId, getApiTimeRange, API_BASE_URL]);
 
   // Load everything on mount
   useEffect(() => {
@@ -207,11 +279,11 @@ const DynamicTimeseriesChart = ({
             responsive: true,
             displayModeBar: true,
             displaylogo: false,
-            modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+            modeBarButtonsToRemove: ['lasso2d', 'select2d', 'zoom2d', 'autoScale2d', 'resetScale2d'],
             staticPlot: false,
             doubleClick: 'reset+autosize',
             showTips: false,
-            scrollZoom: true,
+            scrollZoom: true, // Enable scroll zoom within date range
             editable: false,
             toImageButtonOptions: {
               format: 'png',

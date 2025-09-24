@@ -47,9 +47,9 @@ export const getTickInterval = (startDate, endDate) => {
   }
 };
 
-export const transformConfigToPlotly = (config, data) => {
+export const transformConfigToPlotly = (config, data, dateRange = null) => {
   const traces = [];
-  const layout = createLayout(config, data);
+  const layout = createLayout(config, data, dateRange);
   
   // Transform series to traces
   if (config.series && Array.isArray(config.series)) {
@@ -91,7 +91,7 @@ export const transformConfigToPlotly = (config, data) => {
   return result;
 };
 
-const createLayout = (config, data) => {
+const createLayout = (config, data, dateRange = null) => {
   const layout = {
     title: {
       text: config.panel?.title || 'Time Series Chart',
@@ -130,8 +130,13 @@ const createLayout = (config, data) => {
       namelength: config.tooltip?.nameLength || 0,
       align: config.tooltip?.align || 'left'
     },
-    dragmode: config.chart?.dragMode || 'pan',
-    selectdirection: config.chart?.selectDirection || 'diagonal'
+    dragmode: 'pan', // Enable pan mode for cursor movement
+    // Allow zoom and pan within the complete date range
+    xaxis: {
+      fixedrange: false, // Allow zoom and pan
+      autorange: false, // Use the set range
+      constrain: 'domain' // Constrain to the domain
+    }
   };
 
   // Configure x-axis with dynamic time formatting
@@ -194,20 +199,34 @@ const createLayout = (config, data) => {
   }
   console.log('Using time format:', timeFormat, 'with interval:', tickInterval);
   
-  // Set x-axis range to show only the selected time range
+  // Set x-axis range to show the exact date filter window
   let xAxisRange = undefined;
-  if (data && data.length > 0) {
-    // Use the same min/max approach as tick formatting
+  if (dateRange && dateRange.start && dateRange.stop) {
+    // Use the exact start and stop timestamps from the date filter
+    const startTime = new Date(dateRange.start);
+    const endTime = new Date(dateRange.stop);
+    
+    xAxisRange = [startTime, endTime];
+    console.log('Setting x-axis range (exact filter window):', { 
+      startTime: startTime.toISOString(), 
+      endTime: endTime.toISOString(),
+      dataPoints: data?.length || 0,
+      timeSpan: `${(endTime - startTime) / (1000 * 60 * 60)} hours`
+    });
+  } else if (data && data.length > 0) {
+    // Fallback to data range if no date filter provided
     const allTimestamps = data.map(item => new Date(item.timestamp || item.time).getTime());
     const minTimestamp = Math.min(...allTimestamps);
     const maxTimestamp = Math.max(...allTimestamps);
     
-    const firstTime = new Date(minTimestamp);
-    const lastTime = new Date(maxTimestamp);
-    xAxisRange = [firstTime, lastTime];
-    console.log('Setting x-axis range (using full range):', { 
-      firstTime: firstTime.toISOString(), 
-      lastTime: lastTime.toISOString() 
+    const startTime = new Date(minTimestamp);
+    const endTime = new Date(maxTimestamp);
+    
+    xAxisRange = [startTime, endTime];
+    console.log('Setting x-axis range (data range fallback):', { 
+      startTime: startTime.toISOString(), 
+      endTime: endTime.toISOString(),
+      dataPoints: data.length
     });
   }
 
@@ -242,7 +261,9 @@ const createLayout = (config, data) => {
     },
     rangeslider: { visible: config.axes?.x?.rangeSlider || false },
     rangeselector: { visible: config.axes?.x?.rangeSelector || false },
-    fixedrange: config.axes?.x?.fixedRange || false
+    fixedrange: false, // Allow zoom and pan within the date range
+    autorange: false, // Use the set range
+    constrain: 'domain' // Constrain zoom to the domain
   };
 
   // Configure y-axes
