@@ -11,6 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   GripVertical,
+  Settings,
+  Shield,
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -25,6 +27,7 @@ const Sidebar = () => {
     { id: 'team', label: 'Team / Management', icon: 'Users', path: '/team' },
     { id: 'notifications', label: 'Notifications', icon: 'Bell', path: '/notifications' },
     { id: 'reports', label: 'Reports / Analytics', icon: 'BarChart2', path: '/reports' },
+    { id: 'admin', label: 'Admin Panel', icon: 'Shield', path: '/admin/charts-management' },
   ];
 
   // All tabs are visible
@@ -99,7 +102,7 @@ const Sidebar = () => {
   }, []);
 
   const getIcon = (iconName) => {
-    const icons = { Home, Sun, Factory, Zap, Users, Bell, BarChart2 };
+    const icons = { Home, Sun, Factory, Zap, Users, Bell, BarChart2, Shield };
     const IconComponent = icons[iconName];
     return IconComponent ? <IconComponent size={20} /> : null;
   };

@@ -12,6 +12,9 @@ import Grid from './pages/Grid';
 import Team from './pages/Team';
 import Notifications from './pages/Notifications';
 import Reports from './pages/Reports';
+import ChartsManagement from './pages/admin/ChartsManagement';
+import ChartsEdit from './pages/admin/ChartsEdit';
+import ChartsCreate from './pages/admin/ChartsCreate';
 import { useDataIntegration } from './hooks/useDataIntegration';
 import './App.css';
 
@@ -33,6 +36,11 @@ function AppWithData() {
             <Route path="/team" element={<Team />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/reports" element={<Reports />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin/charts-management" element={<ChartsManagement />} />
+            <Route path="/admin/charts-management/create" element={<ChartsCreate />} />
+            <Route path="/admin/charts-management/edit/:id" element={<ChartsEdit />} />
             
             <Route path="*" element={<Navigate to="/overview" replace />} />
           </Routes>
